@@ -1,0 +1,18 @@
+# -*- mode: conf -*-
+
+[Unit]
+Description=The performance tester for XMiDT Caduceus.
+Documentation=https://github.com/xmidt-org/caduceator
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/default/caduceator
+User=caduceator
+ExecStart=/usr/bin/caduceator \
+          $CADUCEATOR_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target

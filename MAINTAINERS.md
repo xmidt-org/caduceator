@@ -1,3 +1,4 @@
 Maintainers of this repository:
 
-* Person @person
+* Gargi @gargidb
+* Kristina Spring @kristinaspring

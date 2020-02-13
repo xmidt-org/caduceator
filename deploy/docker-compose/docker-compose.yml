@@ -1,0 +1,100 @@
+version: '3.4'
+services:
+  caduceator:
+    image: xmidt/caduceator:${CADUCEATOR_VERSION}
+    ports:
+      - 5000:5000
+      - 5001:5001
+      - 5002:5002
+      - 5003:5003
+    depends_on:
+      - caduceus
+    volumes:
+      - ./docFiles/caduceus.yaml:/etc/caduceator/caduceator.yaml
+    networks:
+      - xmidt
+
+  caduceus:
+    image: xmidt/caduceus:${CADUCEUS_VERSION}
+    ports:
+      - 6000:6000
+      - 6001:6001
+      - 6002:6002
+      - 6003:6003
+    depends_on:
+      - goaws
+    volumes:
+      - ./docFiles/caduceus.yaml:/etc/caduceus/caduceus.yaml
+    networks:
+      - xmidt
+
+  tr1d1um:
+    image: xmidt/tr1d1um:${TR1D1UM_VERSION}
+    ports:
+      - 6100:6100
+      - 6101:6101
+      - 6102:6102
+    depends_on:
+      - goaws
+    volumes:
+      - ./docFiles/tr1d1um.yaml:/etc/tr1d1um/tr1d1um.yaml
+    networks:
+      - xmidt
+
+  goaws:
+    image: goaws:local
+    container_name: goaws
+    ports:
+      - 4100:4100
+    networks:
+      - xmidt
+    volumes:
+      - ./docFiles/sns.yaml:/conf/goaws.yaml
+
+  prometheus:
+    image: prom/prometheus
+    networks:
+      - xmidt
+    ports:
+      - 9090:9090
+    depends_on:
+      - consul0
+      - consul1
+    volumes:
+      - ./docFiles/prometheus.yml:/prometheus-data/prometheus.yml
+    command:  --log.level=debug --config.file=/prometheus-data/prometheus.yml
+
+# Mark Consul Definitions
+  consul0:
+    image: consul:latest
+    container_name: consul0
+    hostname: consul0
+    ports:
+      - 8400:8400
+      - 8500:8500
+      - 8600:8600
+      - 8600:8600/udp
+    networks:
+      - xmidt
+    volumes:
+      - ./docFiles/consul-0.json:/consul.json
+    command: "agent -server -bootstrap-expect 1 -ui -client 0.0.0.0 -config-file consul.json"
+  consul1:
+    image: consul:latest
+    container_name: consul1
+    hostname: consul1
+    ports:
+      - 8401:8400
+      - 8501:8500
+      - 8601:8600
+      - 8601:8600/udp
+    networks:
+      - xmidt
+    depends_on:
+      - consul0
+    volumes:
+      - ./docFiles/consul-1.json:/consul.json
+    command: "agent -server -bootstrap-expect 1 -ui -client 0.0.0.0 -config-file consul.json"
+
+networks:
+  xmidt:
