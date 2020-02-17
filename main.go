@@ -27,7 +27,6 @@ import (
 
 	"github.com/justinas/alice"
 	vegeta "github.com/tsenart/vegeta/lib"
-
 	acquire "github.com/xmidt-org/bascule/acquire"
 	"github.com/xmidt-org/bascule/basculehttp"
 	webhook "github.com/xmidt-org/wrp-listener"
@@ -91,6 +90,9 @@ func Start(id uint64) vegeta.Targeter {
 			fmt.Fprintf(os.Stderr, "error serving http requests: %v\n", err.Error())
 			os.Exit(1)
 		}
+
+		//still need to call both function in primaryHandler
+
 		return err
 	}
 

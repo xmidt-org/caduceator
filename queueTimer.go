@@ -18,14 +18,13 @@
 package main
 
 import (
-	"os"
 	"time"
 )
 
-func startTimer() {
-	time.Sleep(5 * time.Second)
+func startTimer() chan time.Time {
+	//need to utilize prometheus
 	channel := make(chan time.Time)
 	var time time.Time
 	channel <- time
-	os.Exit(0)
+	return channel
 }

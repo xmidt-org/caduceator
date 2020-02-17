@@ -18,19 +18,38 @@
 package main
 
 import (
-	"os"
+	"io/ioutil"
+	"net/http"
 	"time"
+
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
+	"github.com/xmidt-org/webpa-common/logging"
 )
 
+type Measure struct {
+	metric metrics.Counter
+}
+
 type App struct {
+	logger  log.Logger
+	measure Measure
 }
 
-func receiveEvents() {
+func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
+	_, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		logging.Error(app.logger).Log(logging.MessageKey(), "Could not read request body", logging.ErrorKey(), err.Error())
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	time.Sleep(5 * time.Second)
-	os.Exit(0)
+	writer.WriteHeader(http.StatusAccepted)
 }
 
-func receiveCutoff() {
-	time.Sleep(5 * time.Second)
-	os.Exit(0)
+func receiveCutoff() chan time.Time {
+	return startTimer()
+	//stop registering for events
+	//periodicRegister.Stop()
 }
