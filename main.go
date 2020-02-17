@@ -19,6 +19,7 @@ package main
 
 import (
 	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,7 +28,7 @@ import (
 	"github.com/justinas/alice"
 	vegeta "github.com/tsenart/vegeta/lib"
 
-	"github.com/xmidt-org/bascule/acquire"
+	acquire "github.com/xmidt-org/bascule/acquire"
 	"github.com/xmidt-org/bascule/basculehttp"
 	webhook "github.com/xmidt-org/wrp-listener"
 	"github.com/xmidt-org/wrp-listener/hashTokenFactory"
@@ -66,7 +67,14 @@ func Start(id uint64) vegeta.Targeter {
 				Events: []string{"device-status.*"},
 			},
 		}
-		registerer, err := webhookClient.NewBasicRegisterer(&acquire.DefaultAcquirer{}, secretGetter, basicConfig)
+
+		acquirer, err := acquire.NewFixedAuthAcquirer("Basic " + base64.StdEncoding.EncodeToString([]byte("dXNlcjpwYXNz")))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create basic auth plain text acquirer: %v\n", err.Error())
+			os.Exit(1)
+		}
+
+		registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to setup registerer: %v\n", err.Error())
 			os.Exit(1)
