@@ -14,5 +14,6 @@ func receiveEvents() {
 }
 
 func receiveCutoff() {
-
+	time.Sleep(5 * time.Second)
+	os.Exit(0)
 }

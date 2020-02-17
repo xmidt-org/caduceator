@@ -61,7 +61,7 @@ func Start(id uint64) vegeta.Targeter {
 			RegistrationURL: "http://127.0.0.1:8000/hook",
 			Request: webhook.W{
 				Config: webhook.Config{
-					URL: "http://127.0.0.1:7100/events", //this is where connect
+					URL: "http://127.0.0.1:7100/events", //need to change
 				},
 				Events: []string{"device-status.*"},
 			},

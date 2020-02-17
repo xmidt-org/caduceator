@@ -25,7 +25,7 @@ import (
 func startTimer() {
 	time.Sleep(5 * time.Second)
 	channel := make(chan time.Time)
-	var newTime time.Time
-	channel <- newTime
+	var time time.Time
+	channel <- time
 	os.Exit(0)
 }
