@@ -25,6 +25,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/wrp-listener/webhookClient"
 )
 
 type Measure struct {
@@ -35,6 +36,10 @@ type App struct {
 	logger  log.Logger
 	measure Measure
 }
+
+var (
+	cutoffTime time.Time
+)
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 	_, err := ioutil.ReadAll(req.Body)
@@ -48,8 +53,10 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 	writer.WriteHeader(http.StatusAccepted)
 }
 
-func receiveCutoff() chan time.Time {
-	return startTimer()
+func receiveCutoff(p *webhookClient.PeriodicRegisterer) {
+	p.Stop()
+	cutoffTime = time.Now()
+	startTimer()
+	return
 	//stop registering for events
-	//periodicRegister.Stop()
 }

@@ -19,12 +19,18 @@ package main
 
 import (
 	"time"
+	// "github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	channel chan time.Time
 )
 
 func startTimer() chan time.Time {
 	//need to utilize prometheus
-	channel := make(chan time.Time)
+	// channel = make(chan time.Time)
 	var time time.Time
+	//add prometheus code here to check time and put into channel
 	channel <- time
 	return channel
 }
