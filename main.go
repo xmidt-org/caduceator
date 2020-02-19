@@ -45,6 +45,37 @@ func Start(id uint64) vegeta.Targeter {
 	return func(target *vegeta.Target) (err error) {
 
 		//add code in here to send events to Caduceus (use http lib to make request; refer to example curl command)
+		file, err := os.Open("./payload")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to open payload: %v\n", err.Error())
+		}
+		defer file.Close()
+
+		req, err := http.NewRequest("POST", "https://caduceus-cd.xmidt.comcast.net:443/api/v3/notify", file)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create new request: %v\n", err.Error())
+		}
+		req.Header.Add("Content-type", "application/msgpack")
+
+		acquirer, err := acquire.NewFixedAuthAcquirer("Basic " + base64.StdEncoding.EncodeToString([]byte("dXNlcjpwYXNz")))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create basic auth plain text acquirer: %v\n", err.Error())
+			os.Exit(1)
+		}
+
+		authValue, err := acquirer.Acquire()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to acquire: %v\n", err.Error())
+		}
+
+		req.Header.Add("Authorization", authValue)
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed while making HTTP request: %v\n", err.Error())
+		}
+		defer resp.Body.Close()
+
 		return err
 	}
 
