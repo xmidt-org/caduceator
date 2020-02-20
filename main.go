@@ -18,17 +18,21 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/justinas/alice"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	vegeta "github.com/tsenart/vegeta/lib"
 	acquire "github.com/xmidt-org/bascule/acquire"
 	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/server"
+	"github.com/xmidt-org/wrp-go/wrp"
 	webhook "github.com/xmidt-org/wrp-listener"
 	"github.com/xmidt-org/wrp-listener/hashTokenFactory"
 	secretGetter "github.com/xmidt-org/wrp-listener/secret"
@@ -39,40 +43,64 @@ type Register struct {
 	periodicRegisterer *webhookClient.PeriodicRegisterer
 }
 
+const (
+	applicationName = "caduceator"
+)
+
+var (
+	f, v              = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
+	logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
+)
+
 //Start function is used to send events to Caduceus
-func Start(id uint64) vegeta.Targeter {
+func Start(id uint64, acquirer *acquire.FixedValueAcquirer) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
 
-		//add code in here to send events to Caduceus (use http lib to make request; refer to example curl command)
-		file, err := os.Open("./payload")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to open payload: %v\n", err.Error())
+		message := wrp.Message{
+			Type:            4,
+			Source:          "dns:talaria",
+			Destination:     "event:device-status/mac:112233445566/offline",
+			TransactionUUID: "abcd",
+			ContentType:     "json",
+			Metadata: map[string]string{
+				"/trust":      "0",
+				"/compliance": "full",
+				"/boot-time":  "1582511208",
+			},
+			Payload: []byte("ewoJCSJpZCI6ICJtYWM6MTEyMjMzNDQ1NTY2IiwKCQkidHMiOiAiMjAyMC0wMi0yMFQwMToyMjoyNC4xNDc0NDkzMDJaIiwKCQkiYnl0ZXMtc2VudCI6IDIxMzQsCgkJIm1lc3NhZ2VzLXNlbnQiOiA4LAoJCSJieXRlcy1yZWNlaXZlZCI6IDU1NTcsCgkJIm1lc3NhZ2VzLXJlY2VpdmVkIjogMSwKCQkiY29ubmVjdGVkLWF0IjogIjIwMjAtMDItMTlUMTE6NTU6MjMuNzQ1MDU1NzFaIiwKCQkicmVhc29uLWZvci1jbG9zdXJlIjogInJlYWRlcnJvciIKCX0="),
 		}
-		defer file.Close()
 
-		req, err := http.NewRequest("POST", "https://caduceus-cd.xmidt.comcast.net:443/api/v3/notify", file)
+		//encoding wrp.Message
+		var (
+			buffer  bytes.Buffer
+			encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
+		)
+
+		if err := encoder.Encode(&message); err != nil {
+			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
+		}
+
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create new request: %v\n", err.Error())
+			logging.Error(logger).Log(logging.MessageKey(), "failed to open payload", logging.ErrorKey(), err.Error())
+		}
+
+		req, err := http.NewRequest("POST", "https://caduceus-cd.xmidt.comcast.net:443/api/v3/notify", &buffer)
+		if err != nil {
+			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
 		}
 		req.Header.Add("Content-type", "application/msgpack")
 
-		acquirer, err := acquire.NewFixedAuthAcquirer("Basic " + base64.StdEncoding.EncodeToString([]byte("dXNlcjpwYXNz")))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create basic auth plain text acquirer: %v\n", err.Error())
-			os.Exit(1)
-		}
-
 		authValue, err := acquirer.Acquire()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to acquire: %v\n", err.Error())
+			logging.Error(logger).Log(logging.MessageKey(), "failed to acquire", logging.ErrorKey(), err.Error())
 		}
 
 		req.Header.Add("Authorization", authValue)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed while making HTTP request: %v\n", err.Error())
+			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request", logging.ErrorKey(), err.Error())
 		}
 		defer resp.Body.Close()
 
@@ -89,7 +117,8 @@ func main() {
 	// set up the middleware
 	htf, err := hashTokenFactory.New("Sha1", sha1.New, secretGetter)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to setup hash token factory: %v\n", err.Error())
+		// fmt.Fprintf(os.Stderr, "failed to setup hash token factory: %v\n", err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), "failed to setup hash token factory", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
 	authConstructor := basculehttp.NewConstructor(
@@ -102,28 +131,30 @@ func main() {
 	// set up the registerer
 	basicConfig := webhookClient.BasicConfig{
 		Timeout:         5 * time.Second,
-		RegistrationURL: "http://127.0.0.1:6000/hook",
+		RegistrationURL: "http://caduceus:6000/hook",
 		Request: webhook.W{
 			Config: webhook.Config{
-				URL: "http://127.0.0.1:5000/events",
+				URL: "http://caduceus:5000/events",
 			},
 			Events:     []string{"device-status.*"},
-			FailureURL: "http://127.0.0.1:5000/events",
+			FailureURL: "http://caduceus:5000/events",
 		},
 	}
 
-	acquirer, err := acquire.NewFixedAuthAcquirer("Basic " + base64.StdEncoding.EncodeToString([]byte("dXNlcjpwYXNz")))
+	acquirer, err := acquire.NewFixedAuthAcquirer("Basic dXNlcjpwYXNz")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create basic auth plain text acquirer: %v\n", err.Error())
+		// fmt.Fprintf(os.Stderr, "failed to create basic auth plain text acquirer: %v\n", err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), "failed to create basic auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
 
 	registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to setup registerer: %v\n", err.Error())
+		// fmt.Fprintf(os.Stderr, "failed to setup registerer: %v\n", err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
-	periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, 4*time.Minute, nil)
+	periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, 4*time.Minute, logger)
 
 	// start the registerer
 	periodicRegisterer.Start()
@@ -132,7 +163,8 @@ func main() {
 	http.Handle("/events", handler.ThenFunc(return200)) //need to change func
 	err = http.ListenAndServe(":5000", nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error serving http requests: %v\n", err.Error())
+		// fmt.Fprintf(os.Stderr, "error serving http requests: %v\n", err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), "error serving http request", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
 
@@ -147,14 +179,9 @@ func main() {
 	rate := vegeta.Rate{Freq: 100, Per: time.Second}
 	duration := 1 * time.Second
 
-	// targeter := vegeta.NewStaticTargeter(vegeta.Target{
-	// 	Method: "GET",
-	// 	URL:    "http://localhost:9100/", //need to change URL
-	// })
-
 	attacker := vegeta.NewAttacker(vegeta.Connections(500))
 
-	for res := range attacker.Attack(Start(0), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 	metrics.Close()
