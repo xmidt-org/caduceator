@@ -22,14 +22,19 @@ import (
 	"crypto/sha1"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	vegeta "github.com/tsenart/vegeta/lib"
 	acquire "github.com/xmidt-org/bascule/acquire"
 	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/webpa-common/basculechecks"
+	"github.com/xmidt-org/webpa-common/basculemetrics"
+	"github.com/xmidt-org/webpa-common/concurrent"
 	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/webpa-common/server"
 	"github.com/xmidt-org/wrp-go/wrp"
@@ -39,6 +44,7 @@ import (
 	"github.com/xmidt-org/wrp-listener/webhookClient"
 )
 
+//Register used to start and stop registering webhooks
 type Register struct {
 	periodicRegisterer *webhookClient.PeriodicRegisterer
 }
@@ -48,8 +54,9 @@ const (
 )
 
 var (
-	f, v              = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
-	logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
+	f, v = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
+	// logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
+	logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
 )
 
 //Start function is used to send events to Caduceus
@@ -81,11 +88,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer) vegeta.Targeter {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
 		}
 
-		if err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed to open payload", logging.ErrorKey(), err.Error())
-		}
-
-		req, err := http.NewRequest("POST", "https://caduceus-cd.xmidt.comcast.net:443/api/v3/notify", &buffer)
+		req, err := http.NewRequest("POST", "http://caduceus:6000/api/v3/notify", &buffer)
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
 		}
@@ -117,7 +120,6 @@ func main() {
 	// set up the middleware
 	htf, err := hashTokenFactory.New("Sha1", sha1.New, secretGetter)
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "failed to setup hash token factory: %v\n", err.Error())
 		logging.Error(logger).Log(logging.MessageKey(), "failed to setup hash token factory", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
@@ -134,23 +136,21 @@ func main() {
 		RegistrationURL: "http://caduceus:6000/hook",
 		Request: webhook.W{
 			Config: webhook.Config{
-				URL: "http://caduceus:5000/events",
+				URL: "http://caduceator:5000/events",
 			},
 			Events:     []string{"device-status.*"},
-			FailureURL: "http://caduceus:5000/events",
+			FailureURL: "http://caduceator:5000/cutoff",
 		},
 	}
 
 	acquirer, err := acquire.NewFixedAuthAcquirer("Basic dXNlcjpwYXNz")
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "failed to create basic auth plain text acquirer: %v\n", err.Error())
 		logging.Error(logger).Log(logging.MessageKey(), "failed to create basic auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
 
 	registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "failed to setup registerer: %v\n", err.Error())
 		logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
@@ -159,14 +159,44 @@ func main() {
 	// start the registerer
 	periodicRegisterer.Start()
 
+	router := mux.NewRouter()
+
+	app := &App{}
 	// start listening
-	http.Handle("/events", handler.ThenFunc(return200)) //need to change func
-	err = http.ListenAndServe(":5000", nil)
-	if err != nil {
-		// fmt.Fprintf(os.Stderr, "error serving http requests: %v\n", err.Error())
-		logging.Error(logger).Log(logging.MessageKey(), "error serving http request", logging.ErrorKey(), err.Error())
-		os.Exit(1)
+	router.Handle("/events", handler.ThenFunc(app.receiveEvents))
+	router.Handle("/cutoff", handler.ThenFunc(app.receiveCutoff))
+
+	// http.Handle("/cutoff", handler.ThenFunc(receiveCutoff))
+
+	// go http.ListenAndServe(":5000", nil)
+	_, runnable, done := caduceator.Prepare(logger, nil, metricsRegistry, router)
+	waitGroup, shutdown, err := concurrent.Execute(runnable)
+
+	signals := make(chan os.Signal, 10)
+	signal.Notify(signals)
+	for exit := false; !exit; {
+		select {
+		case s := <-signals:
+			if s != os.Kill && s != os.Interrupt {
+				logging.Info(logger).Log(logging.MessageKey(), "ignoring signal", "signal", s)
+			} else {
+				logging.Error(logger).Log(logging.MessageKey(), "exiting due to signal", "signal", s)
+				exit = true
+			}
+		case <-done:
+			logging.Error(logger).Log(logging.MessageKey(), "one or more servers exited")
+			exit = true
+		}
 	}
+
+	close(shutdown)
+	waitGroup.Wait()
+	logging.Info(logger).Log(logging.MessageKey(), "Caduceator has shut down")
+
+	// if err != nil {
+	// 	logging.Error(logger).Log(logging.MessageKey(), "error serving http request", logging.ErrorKey(), err.Error())
+	// 	os.Exit(1)
+	// }
 
 	//still need to call both function in primaryHandler using router.Handle
 	//will get time the queue was empty from channel

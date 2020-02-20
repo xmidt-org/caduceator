@@ -19,12 +19,14 @@ package main
 
 import (
 	"time"
-	// "github.com/prometheus/client_golang/prometheus"
 )
 
 var (
 	channel chan time.Time
 )
+
+type Channel struct {
+}
 
 func startTimer() chan time.Time {
 	//need to utilize prometheus

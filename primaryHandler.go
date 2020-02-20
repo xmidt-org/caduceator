@@ -28,10 +28,12 @@ import (
 	"github.com/xmidt-org/wrp-listener/webhookClient"
 )
 
+//Measure used for metrics
 type Measure struct {
 	metric metrics.Counter
 }
 
+//App used for logging and metrics
 type App struct {
 	logger  log.Logger
 	measure Measure
@@ -53,7 +55,9 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 	writer.WriteHeader(http.StatusAccepted)
 }
 
-func receiveCutoff(p *webhookClient.PeriodicRegisterer) {
+func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
+
+	var p *webhookClient.PeriodicRegisterer
 	p.Stop()
 	cutoffTime = time.Now()
 	startTimer()
