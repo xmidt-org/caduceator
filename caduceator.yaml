@@ -103,10 +103,10 @@ metric:
   metricsOptions:
     # namespace is the namespace of the metrics provided
     # (Optional)
-    namespace: 
+    namespace: caduceator
     # subsystem is the subsystem of the metrics provided
     # (Optional)
-    subsystem: 
+    subsystem: caduceator
 
 ########################################
 #   Logging Related Configuration

@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/pflag"
@@ -53,14 +54,14 @@ const (
 	applicationName = "caduceator"
 )
 
-var (
-	f, v = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
-	// logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
-	logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
-)
+// var (
+// 	f, v = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
+// 	// logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
+// 	logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
+// )
 
 //Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.FixedValueAcquirer) vegeta.Targeter {
+func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
 
@@ -113,6 +114,12 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer) vegeta.Targeter {
 }
 
 func main() {
+
+	var (
+		f, v = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
+		// logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
+		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
+	)
 
 	// use constant secret for hash
 	secretGetter := secretGetter.NewConstantSecret("secret1234")
@@ -172,6 +179,29 @@ func main() {
 	_, runnable, done := caduceator.Prepare(logger, nil, metricsRegistry, router)
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
 
+	// if err != nil {
+	// 	logging.Error(logger).Log(logging.MessageKey(), "error serving http request", logging.ErrorKey(), err.Error())
+	// 	os.Exit(1)
+	// }
+
+	//still need to call both function in primaryHandler using router.Handle
+	//will get time the queue was empty from channel
+	emptyQueueTime := <-channel
+	elapsedTime := emptyQueueTime.Sub(cutoffTime)
+	println(elapsedTime)
+
+	//send events to Caduseus using vegeta
+	var metrics vegeta.Metrics
+	rate := vegeta.Rate{Freq: 100, Per: time.Second}
+	duration := 1 * time.Second
+
+	attacker := vegeta.NewAttacker(vegeta.Connections(500))
+
+	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
+		metrics.Add(res)
+	}
+	metrics.Close()
+
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
 	for exit := false; !exit; {
@@ -192,29 +222,6 @@ func main() {
 	close(shutdown)
 	waitGroup.Wait()
 	logging.Info(logger).Log(logging.MessageKey(), "Caduceator has shut down")
-
-	// if err != nil {
-	// 	logging.Error(logger).Log(logging.MessageKey(), "error serving http request", logging.ErrorKey(), err.Error())
-	// 	os.Exit(1)
-	// }
-
-	//still need to call both function in primaryHandler using router.Handle
-	//will get time the queue was empty from channel
-	emptyQueueTime := <-channel
-	elapsedTime := emptyQueueTime.Sub(cutoffTime)
-	println(elapsedTime)
-
-	//send events to Caduseus using vegeta
-	var metrics vegeta.Metrics
-	rate := vegeta.Rate{Freq: 100, Per: time.Second}
-	duration := 1 * time.Second
-
-	attacker := vegeta.NewAttacker(vegeta.Connections(500))
-
-	for res := range attacker.Attack(Start(0, acquirer), rate, duration, "Big Bang!") {
-		metrics.Add(res)
-	}
-	metrics.Close()
 
 }
 
