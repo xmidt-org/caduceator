@@ -46,19 +46,10 @@ import (
 )
 
 //Register used to start and stop registering webhooks
-type Register struct {
-	periodicRegisterer *webhookClient.PeriodicRegisterer
-}
 
 const (
 	applicationName = "caduceator"
 )
-
-// var (
-// 	f, v = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
-// 	// logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
-// 	logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
-// )
 
 //Start function is used to send events to Caduceus
 func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
@@ -116,8 +107,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 func main() {
 
 	var (
-		f, v = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
-		// logger, _, _, err = server.Initialize(applicationName, os.Args, f, v)
+		f, v                                     = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
 		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
 	)
 
@@ -192,6 +182,11 @@ func main() {
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
+
+	metricsReporter := vegeta.NewTextReporter(&metrics)
+
+	metricsReporter.Report(os.Stdout)
+
 	metrics.Close()
 
 	signals := make(chan os.Signal, 10)

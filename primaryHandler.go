@@ -47,6 +47,9 @@ var (
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 	_, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
+	if err == nil {
+		logging.Error(app.logger).Log(logging.MessageKey(), "Caduceator receiving events successfully", logging.ErrorKey(), err.Error())
+	}
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "Could not read request body", logging.ErrorKey(), err.Error())
 		writer.WriteHeader(http.StatusBadRequest)
