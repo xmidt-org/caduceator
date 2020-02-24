@@ -21,18 +21,15 @@ import (
 	"time"
 )
 
-var (
-	channel chan time.Time
-)
-
-type Channel struct {
+type timeChannel struct {
+	queueTime chan time.Time
 }
 
 func startTimer() chan time.Time {
+	var timeChannel timeChannel
 	//need to utilize prometheus
-	// channel = make(chan time.Time)
 	var time time.Time
 	//add prometheus code here to check time and put into channel
-	channel <- time
-	return channel
+	timeChannel.queueTime <- time
+	return timeChannel.queueTime
 }

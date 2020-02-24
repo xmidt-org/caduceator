@@ -35,8 +35,9 @@ type Measure struct {
 
 //App used for logging and metrics
 type App struct {
-	logger  log.Logger
-	measure Measure
+	logger    log.Logger
+	measure   Measure
+	queueTime chan time.Time
 }
 
 var (
@@ -60,7 +61,7 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 	var p *webhookClient.PeriodicRegisterer
 	p.Stop()
 	cutoffTime = time.Now()
-	startTimer()
+	app.queueTime = startTimer()
 	return
 	//stop registering for events
 }

@@ -168,25 +168,17 @@ func main() {
 
 	router := mux.NewRouter()
 
-	app := &App{}
+	app := &App{queueTime: startTimer()}
 	// start listening
 	router.Handle("/events", handler.ThenFunc(app.receiveEvents))
 	router.Handle("/cutoff", handler.ThenFunc(app.receiveCutoff))
-
-	// http.Handle("/cutoff", handler.ThenFunc(receiveCutoff))
 
 	// go http.ListenAndServe(":5000", nil)
 	_, runnable, done := caduceator.Prepare(logger, nil, metricsRegistry, router)
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
 
-	// if err != nil {
-	// 	logging.Error(logger).Log(logging.MessageKey(), "error serving http request", logging.ErrorKey(), err.Error())
-	// 	os.Exit(1)
-	// }
-
-	//still need to call both function in primaryHandler using router.Handle
 	//will get time the queue was empty from channel
-	emptyQueueTime := <-channel
+	emptyQueueTime := <-app.queueTime
 	elapsedTime := emptyQueueTime.Sub(cutoffTime)
 	println(elapsedTime)
 
