@@ -175,7 +175,7 @@ func main() {
 	//send events to Caduseus using vegeta
 	var metrics vegeta.Metrics
 	rate := vegeta.Rate{Freq: 100, Per: time.Second}
-	duration := 1 * time.Second
+	duration := 1 * time.Minute
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(500))
 
@@ -185,7 +185,11 @@ func main() {
 
 	metricsReporter := vegeta.NewTextReporter(&metrics)
 
-	metricsReporter.Report(os.Stdout)
+	err = metricsReporter.Report(os.Stdout)
+
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "vegeta success", logging.ErrorKey(), err.Error())
+	}
 
 	metrics.Close()
 
