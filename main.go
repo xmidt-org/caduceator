@@ -166,6 +166,9 @@ func main() {
 	// go http.ListenAndServe(":5000", nil)
 	_, runnable, done := caduceator.Prepare(logger, nil, metricsRegistry, router)
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
+	}
 
 	//will get time the queue was empty from channel
 	emptyQueueTime := <-app.channel.queueTime
@@ -187,8 +190,8 @@ func main() {
 
 	err = metricsReporter.Report(os.Stdout)
 
-	if err == nil {
-		logging.Error(logger).Log(logging.MessageKey(), "vegeta succeeded", logging.ErrorKey(), err.Error())
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
 	}
 
 	metrics.Close()
