@@ -157,8 +157,8 @@ func main() {
 	periodicRegisterer.Start()
 
 	router := mux.NewRouter()
-
-	app := &App{queueTime: startTimer()}
+	app := &App{logger: logger,
+		channel: startTimer()}
 	// start listening
 	router.Handle("/events", handler.ThenFunc(app.receiveEvents))
 	router.Handle("/cutoff", handler.ThenFunc(app.receiveCutoff))
@@ -168,8 +168,8 @@ func main() {
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
 
 	//will get time the queue was empty from channel
-	emptyQueueTime := <-app.queueTime
-	elapsedTime := emptyQueueTime.Sub(cutoffTime)
+	emptyQueueTime := <-app.channel.queueTime
+	elapsedTime := emptyQueueTime.Sub(app.cutoffTime)
 	println(elapsedTime)
 
 	//send events to Caduseus using vegeta
@@ -187,8 +187,8 @@ func main() {
 
 	err = metricsReporter.Report(os.Stdout)
 
-	if err != nil {
-		logging.Error(logger).Log(logging.MessageKey(), "vegeta success", logging.ErrorKey(), err.Error())
+	if err == nil {
+		logging.Error(logger).Log(logging.MessageKey(), "vegeta succeeded", logging.ErrorKey(), err.Error())
 	}
 
 	metrics.Close()

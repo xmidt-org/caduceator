@@ -25,11 +25,13 @@ type timeChannel struct {
 	queueTime chan time.Time
 }
 
-func startTimer() chan time.Time {
+func startTimer() timeChannel {
 	var timeChannel timeChannel
 	//need to utilize prometheus
-	var time time.Time
+	timeChannel.queueTime = make(chan time.Time)
+	var newTime time.Time
+	newTime = time.Now()
 	//add prometheus code here to check time and put into channel
-	timeChannel.queueTime <- time
-	return timeChannel.queueTime
+	timeChannel.queueTime <- newTime
+	return timeChannel
 }

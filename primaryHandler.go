@@ -25,7 +25,6 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/webpa-common/logging"
-	"github.com/xmidt-org/wrp-listener/webhookClient"
 )
 
 //Measure used for metrics
@@ -35,14 +34,14 @@ type Measure struct {
 
 //App used for logging and metrics
 type App struct {
-	logger    log.Logger
-	measure   Measure
-	queueTime chan time.Time
+	logger     log.Logger
+	channel    timeChannel
+	cutoffTime time.Time
 }
 
-var (
-	cutoffTime time.Time
-)
+// var (
+// 	cutoffTime time.Time
+// )
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 	_, err := ioutil.ReadAll(req.Body)
@@ -61,10 +60,11 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
-	var p *webhookClient.PeriodicRegisterer
-	p.Stop()
-	cutoffTime = time.Now()
-	app.queueTime = startTimer()
+	// var p *webhookClient.PeriodicRegisterer
+	// p.Stop()
+	app.cutoffTime = time.Now()
+	app.channel.queueTime = make(chan time.Time)
+	app.channel = startTimer()
 	return
 	//stop registering for events
 }
