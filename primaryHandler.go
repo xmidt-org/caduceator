@@ -23,14 +23,13 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/webpa-common/logging"
 )
 
 //Measure used for metrics
-type Measure struct {
-	metric metrics.Counter
-}
+// type Measure struct {
+// 	metric metrics.Counter
+// }
 
 //App used for logging and metrics
 type App struct {
@@ -63,7 +62,7 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 	// var p *webhookClient.PeriodicRegisterer
 	// p.Stop()
 	app.cutoffTime = time.Now()
-	app.channel.queueTime = make(chan time.Time)
+	// app.channel.queueTime = make(chan time.Time)
 	app.channel = startTimer()
 	return
 	//stop registering for events

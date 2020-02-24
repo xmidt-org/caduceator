@@ -20,6 +20,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -184,6 +185,9 @@ func main() {
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
 		metrics.Add(res)
+		error := res.Error
+		fmt.Print(error)
+
 	}
 
 	metricsReporter := vegeta.NewTextReporter(&metrics)
