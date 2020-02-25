@@ -20,7 +20,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,16 +45,17 @@ import (
 	"github.com/xmidt-org/wrp-listener/webhookClient"
 )
 
-//Register used to start and stop registering webhooks
+// Register used to start and stop registering webhooks
 
 const (
 	applicationName = "caduceator"
 )
 
-//Start function is used to send events to Caduceus
+// Start function is used to send events to Caduceus
 func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
+		logging.Info(logger).Log(logging.MessageKey(), "started sending events")
 
 		message := wrp.Message{
 			Type:            4,
@@ -71,7 +71,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 			Payload: []byte("ewoJCSJpZCI6ICJtYWM6MTEyMjMzNDQ1NTY2IiwKCQkidHMiOiAiMjAyMC0wMi0yMFQwMToyMjoyNC4xNDc0NDkzMDJaIiwKCQkiYnl0ZXMtc2VudCI6IDIxMzQsCgkJIm1lc3NhZ2VzLXNlbnQiOiA4LAoJCSJieXRlcy1yZWNlaXZlZCI6IDU1NTcsCgkJIm1lc3NhZ2VzLXJlY2VpdmVkIjogMSwKCQkiY29ubmVjdGVkLWF0IjogIjIwMjAtMDItMTlUMTE6NTU6MjMuNzQ1MDU1NzFaIiwKCQkicmVhc29uLWZvci1jbG9zdXJlIjogInJlYWRlcnJvciIKCX0="),
 		}
 
-		//encoding wrp.Message
+		// encoding wrp.Message
 		var (
 			buffer  bytes.Buffer
 			encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
@@ -79,26 +79,35 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 
 		if err := encoder.Encode(&message); err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
+			return err
 		}
+		logging.Info(logger).Log(logging.MessageKey(), "encoded payload")
 
 		req, err := http.NewRequest("POST", "http://caduceus:6000/api/v3/notify", &buffer)
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
+			return err
 		}
 		req.Header.Add("Content-type", "application/msgpack")
 
 		authValue, err := acquirer.Acquire()
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to acquire", logging.ErrorKey(), err.Error())
+			return err
 		}
 
 		req.Header.Add("Authorization", authValue)
 
 		resp, err := http.DefaultClient.Do(req)
+
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request", logging.ErrorKey(), err.Error())
+			return err
 		}
+
 		defer resp.Body.Close()
+
+		logging.Info(logger).Log(logging.MessageKey(), "finished sending event")
 
 		return err
 	}
@@ -158,36 +167,29 @@ func main() {
 	periodicRegisterer.Start()
 
 	router := mux.NewRouter()
-	app := &App{logger: logger,
-		channel: startTimer()}
+
+	app := &App{}
+
 	// start listening
 	router.Handle("/events", handler.ThenFunc(app.receiveEvents))
 	router.Handle("/cutoff", handler.ThenFunc(app.receiveCutoff))
 
-	// go http.ListenAndServe(":5000", nil)
 	_, runnable, done := caduceator.Prepare(logger, nil, metricsRegistry, router)
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
 	}
 
-	//will get time the queue was empty from channel
-	emptyQueueTime := <-app.channel.queueTime
-	elapsedTime := emptyQueueTime.Sub(app.cutoffTime)
-	println(elapsedTime)
-
-	//send events to Caduseus using vegeta
+	// send events to Caduseus using vegeta
 	var metrics vegeta.Metrics
 	rate := vegeta.Rate{Freq: 100, Per: time.Second}
 	duration := 1 * time.Minute
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(500))
+	logging.Info(logger).Log(logging.MessageKey(), "vegeta before attacking")
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
 		metrics.Add(res)
-		error := res.Error
-		fmt.Print(error)
-
 	}
 
 	metricsReporter := vegeta.NewTextReporter(&metrics)
