@@ -2,6 +2,7 @@ version: '3.4'
 services:
   caduceator:
     image: xmidt/caduceator:${CADUCEATOR_VERSION}
+    container_name: caduceator
     ports:
       - 5000:5000
       - 5001:5001
@@ -10,12 +11,13 @@ services:
     depends_on:
       - caduceus
     volumes:
-      - ./docFiles/caduceus.yaml:/etc/caduceator/caduceator.yaml
+      - ./docFiles/caduceator.yaml:/etc/caduceator/caduceator.yaml
     networks:
       - xmidt
 
   caduceus:
     image: xmidt/caduceus:${CADUCEUS_VERSION}
+    container_name: caduceus
     ports:
       - 6000:6000
       - 6001:6001
@@ -30,6 +32,7 @@ services:
 
   tr1d1um:
     image: xmidt/tr1d1um:${TR1D1UM_VERSION}
+    container_name: tr1d1um
     ports:
       - 6100:6100
       - 6101:6101
@@ -53,6 +56,7 @@ services:
 
   prometheus:
     image: prom/prometheus
+    container_name: prometheus
     networks:
       - xmidt
     ports:

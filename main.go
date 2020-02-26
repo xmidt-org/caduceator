@@ -135,8 +135,8 @@ func main() {
 		basculehttp.WithHeaderName("X-Webpa-Signature"),
 		basculehttp.WithHeaderDelimiter("="),
 	)
-	handler := alice.New(authConstructor)
-
+	eventHandler := alice.New(authConstructor)
+	cutoffHandler := alice.New()
 	// set up the registerer
 	basicConfig := webhookClient.BasicConfig{
 		Timeout:         5 * time.Second,
@@ -168,11 +168,19 @@ func main() {
 
 	router := mux.NewRouter()
 
-	app := &App{}
+	var appChannel timeChannel
+	appChannel.queueTime = make(chan time.Time)
+	app := &App{logger: logger,
+		channel: appChannel}
 
 	// start listening
-	router.Handle("/events", handler.ThenFunc(app.receiveEvents))
-	router.Handle("/cutoff", handler.ThenFunc(app.receiveCutoff))
+
+	logging.Info(logger).Log(logging.MessageKey(), "before handler")
+
+	router.Handle("/events", eventHandler.ThenFunc(app.receiveEvents)).Methods("POST")
+	router.Handle("/cutoff", cutoffHandler.ThenFunc(app.receiveCutoff)).Methods("POST")
+
+	logging.Info(logger).Log(logging.MessageKey(), "after handler")
 
 	_, runnable, done := caduceator.Prepare(logger, nil, metricsRegistry, router)
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
@@ -180,7 +188,7 @@ func main() {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
 	}
 
-	// send events to Caduseus using vegeta
+	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
 	rate := vegeta.Rate{Freq: 100, Per: time.Second}
 	duration := 1 * time.Minute
@@ -190,7 +198,6 @@ func main() {
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
 		metrics.Add(res)
-		// nothing executed after this line
 	}
 
 	metricsReporter := vegeta.NewTextReporter(&metrics)
@@ -201,10 +208,8 @@ func main() {
 		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
 	}
 
-	metrics.Close()
-
 	// // currTime := <-app.channel.queueTime
-	// logging.Info(logger).Log(logging.MessageKey(), "Getting Time from channel")//+currTime.String())
+	logging.Info(logger).Log(logging.MessageKey(), "Getting Time from channel") //+currTime.String())
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
@@ -223,12 +228,9 @@ func main() {
 		}
 	}
 
+	metrics.Close()
 	close(shutdown)
 	waitGroup.Wait()
 	logging.Info(logger).Log(logging.MessageKey(), "Caduceator has shut down")
 
-}
-
-func return200(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 }
