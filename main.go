@@ -55,7 +55,7 @@ const (
 func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
-		logging.Info(logger).Log(logging.MessageKey(), "started sending events")
+		// logging.Info(logger).Log(logging.MessageKey(), "started sending events")
 
 		message := wrp.Message{
 			Type:            4,
@@ -81,7 +81,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
 			return err
 		}
-		logging.Info(logger).Log(logging.MessageKey(), "encoded payload")
+		// logging.Info(logger).Log(logging.MessageKey(), "encoded payload")
 
 		req, err := http.NewRequest("POST", "http://caduceus:6000/api/v3/notify", &buffer)
 		if err != nil {
@@ -107,7 +107,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 
 		defer resp.Body.Close()
 
-		logging.Info(logger).Log(logging.MessageKey(), "finished sending event")
+		// logging.Info(logger).Log(logging.MessageKey(), "finished sending event")
 
 		return err
 	}
@@ -190,6 +190,7 @@ func main() {
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
 		metrics.Add(res)
+		// nothing executed after this line
 	}
 
 	metricsReporter := vegeta.NewTextReporter(&metrics)
@@ -201,6 +202,9 @@ func main() {
 	}
 
 	metrics.Close()
+
+	// // currTime := <-app.channel.queueTime
+	// logging.Info(logger).Log(logging.MessageKey(), "Getting Time from channel")//+currTime.String())
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
