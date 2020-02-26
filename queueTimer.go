@@ -18,19 +18,34 @@
 package main
 
 import (
+	"bytes"
+	"net/http"
 	"time"
+
+	"github.com/xmidt-org/webpa-common/logging"
 )
 
 type timeChannel struct {
-	queueTime chan time.Time
+	queueTime        chan time.Time
+	cutoffTime       time.Time
+	queueEmptiedTime time.Time
 }
 
-func startTimer() timeChannel {
+func (app *App) startTimer() timeChannel {
 	var timeChannel timeChannel
 	//need to utilize prometheus
 	timeChannel.queueTime = make(chan time.Time)
 	var newTime time.Time
 	newTime = time.Now()
+	var (
+		buffer bytes.Buffer
+	)
+	// req
+	_, err := http.NewRequest("GET", "http://localhost:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)", &buffer)
+	if err != nil {
+		logging.Error(app.logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
+	}
+
 	//add prometheus code here to check time and put into channel
 	timeChannel.queueTime <- newTime
 	return timeChannel

@@ -18,7 +18,6 @@
 package main
 
 import (
-	"bytes"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -57,20 +56,13 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	app.channel.queueTime <- time.Now()
 	app.cutoffTime = time.Now()
-	var (
-		buffer bytes.Buffer
-	)
-	logging.Info(app.logger).Log(logging.MessageKey(), "QUEUE IS FULL!")
 
-	req, err := http.NewRequest("GET", "http://localhost:9090/api/v1/query?query=xmidt_caduceus_outgoing_queue_depths", &buffer)
-	if err != nil {
-		logging.Error(app.logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
-	}
+	logging.Info(app.logger).Log(logging.MessageKey(), "QUEUE IS FULL!")
 
 	// unmarshal json and parse information to new variable that will be inserted to channel in App struct
 
 	// app.channel.queueTime = make(chan time.Time)
-	app.channel = startTimer()
+	app.channel = app.startTimer()
 	return
 	// stop registering for events
 }
