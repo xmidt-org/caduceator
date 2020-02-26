@@ -77,10 +77,6 @@ test-cover: test
 codecov: test
 	curl -s https://codecov.io/bash | bash
 
-.PHONEY: it
-it:
-	./it.sh
-
 .PHONY: clean
 clean:
 	rm -rf ./$(APP) ./.ignore ./coverage.txt ./vendor
