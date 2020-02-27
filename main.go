@@ -169,7 +169,6 @@ func main() {
 	router := mux.NewRouter()
 
 	var queueTime queueTime
-	// appChannel.queueTime = make(chan time.Time)
 	app := &App{logger: logger,
 		queueTime: queueTime}
 

@@ -27,55 +27,78 @@ import (
 )
 
 type queueTime struct {
-	// queueTime        chan time.Time
-	cutoffTime       time.Time
 	queueEmptiedTime time.Time
+	queueDepth       int
 }
 
 type Content struct {
-	status string
-	data   Data
+	Status string
+	Data   Data
 }
 
 type Data struct {
-	resultType string
-	result     Result
+	ResultType string
+	Result     []Result
 }
 
 type Result struct {
-	metric Metric
-	value  []interface{}
+	Metric Metric
+	Value  []interface{}
 }
 
 type Metric struct {
-	url string
+	Url string
+}
+
+func (app *App) doEvery(d time.Duration, f func(time.Time)) {
+	for x := range time.Tick(d) {
+		f(x)
+	}
 }
 
 func (app *App) startTimer() queueTime {
 
-	var timeChannel queueTime
+	var times queueTime
 	//need to utilize prometheus
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "TIMER STARTED!")
 
 	res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
+	currentTime := time.Now()
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
 	} else {
 		defer res.Body.Close()
+
 		contents, err := ioutil.ReadAll(res.Body)
-		var content Content
-		json.Unmarshal([]byte(contents), &content)
-		logging.Info(app.logger).Log(logging.MessageKey(), "PARSING JSON: "+content.status)
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
 		}
 		logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
-		queueDepth := 0
-		queueEmptyTime := time.Now()
-		if queueDepth == 0 {
-			app.queueTime.queueEmptiedTime = queueEmptyTime
+
+		var content Content
+		json.Unmarshal([]byte(contents), &content)
+
+		if content.Data.ResultType == "vector" {
+			for _, results := range content.Data.Result {
+				if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
+					times.queueEmptiedTime = currentTime
+					times.queueDepth = 0
+					logging.Info(app.logger).Log(logging.MessageKey(), "TIME QUEUE GOT EMPTY (QUEUE TIME): "+times.queueEmptiedTime.String())
+
+				}
+			}
 		}
+
+		// logging.Info(app.logger).Log(logging.MessageKey(), "PARSING JSON: "+content.Data.Result[0].Value[1].(string))
+
+		// logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
+		// queueDepth = content.Data.Result[0].Value[1].(int)
+		// queueEmptyTime := time.Now()
+		// if queueDepth == 0 {
+		// 	// app.queueTime.queueEmptiedTime = queueEmptyTime
+		// 	times.queueEmptiedTime = queueEmptyTime
+		// }
 	}
-	return timeChannel
+	return times
 }

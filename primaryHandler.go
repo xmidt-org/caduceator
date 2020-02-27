@@ -26,11 +26,6 @@ import (
 	"github.com/xmidt-org/webpa-common/logging"
 )
 
-// Measure used for metrics
-// type Measure struct {
-// 	metric metrics.Counter
-// }
-
 //App used for logging and metrics
 type App struct {
 	logger     log.Logger
@@ -55,15 +50,12 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "QUEUE IS FULL!")
 
-	// app.channel.queueTime <- time.Now()
 	app.cutoffTime = time.Now()
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "PLACED START TIME IN CHANNEL")
 
-	// unmarshal json and parse information to new variable that will be inserted to channel in App struct
-
-	// app.channel.queueTime = make(chan time.Time)
 	app.queueTime = app.startTimer()
+	logging.Info(app.logger).Log(logging.MessageKey(), "TIME QUEUE GOT EMPTY (RECEIVE CUTOFF): "+app.queueTime.queueEmptiedTime.String())
+
 	return
-	// stop registering for events
 }
