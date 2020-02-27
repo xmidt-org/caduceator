@@ -18,7 +18,7 @@
 package main
 
 import (
-	"bytes"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -26,27 +26,40 @@ import (
 )
 
 type timeChannel struct {
-	queueTime        chan time.Time
+	// queueTime        chan time.Time
 	cutoffTime       time.Time
 	queueEmptiedTime time.Time
 }
 
 func (app *App) startTimer() timeChannel {
+
 	var timeChannel timeChannel
 	//need to utilize prometheus
-	timeChannel.queueTime = make(chan time.Time)
+	// timeChannel.queueTime = make(chan time.Time)
 	var newTime time.Time
-	newTime = time.Now()
-	var (
-		buffer bytes.Buffer
-	)
+	// var (
+	// 	buffer bytes.Buffer
+	// )
+
+	logging.Info(app.logger).Log(logging.MessageKey(), "TIMER STARTED!")
+
 	// req
-	_, err := http.NewRequest("GET", "http://localhost:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)", &buffer)
+	// _, err := http.NewRequest("GET", "http://localhost:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)", &buffer)
+
+	res, err := http.Get("http://localhost:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
 	if err != nil {
-		logging.Error(app.logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
+		logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
+	} else {
+		defer res.Body.Close()
+		contents, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
+		}
+		logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
 	}
+	newTime = time.Now()
 
 	//add prometheus code here to check time and put into channel
-	timeChannel.queueTime <- newTime
+	timeChannel.queueEmptiedTime = newTime
 	return timeChannel
 }

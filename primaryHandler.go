@@ -48,16 +48,17 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	time.Sleep(5 * time.Second)
 	writer.WriteHeader(http.StatusAccepted)
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
-	app.channel.queueTime <- time.Now()
+	logging.Info(app.logger).Log(logging.MessageKey(), "QUEUE IS FULL!")
+
+	// app.channel.queueTime <- time.Now()
 	app.cutoffTime = time.Now()
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "QUEUE IS FULL!")
+	logging.Info(app.logger).Log(logging.MessageKey(), "PLACED START TIME IN CHANNEL")
 
 	// unmarshal json and parse information to new variable that will be inserted to channel in App struct
 

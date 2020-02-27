@@ -169,7 +169,7 @@ func main() {
 	router := mux.NewRouter()
 
 	var appChannel timeChannel
-	appChannel.queueTime = make(chan time.Time)
+	// appChannel.queueTime = make(chan time.Time)
 	app := &App{logger: logger,
 		channel: appChannel}
 
@@ -190,7 +190,7 @@ func main() {
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
-	rate := vegeta.Rate{Freq: 100, Per: time.Second}
+	rate := vegeta.Rate{Freq: 1500, Per: time.Second}
 	duration := 1 * time.Minute
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(500))
