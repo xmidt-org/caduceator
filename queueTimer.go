@@ -18,6 +18,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -25,41 +26,56 @@ import (
 	"github.com/xmidt-org/webpa-common/logging"
 )
 
-type timeChannel struct {
+type queueTime struct {
 	// queueTime        chan time.Time
 	cutoffTime       time.Time
 	queueEmptiedTime time.Time
 }
 
-func (app *App) startTimer() timeChannel {
+type Content struct {
+	status string
+	data   Data
+}
 
-	var timeChannel timeChannel
+type Data struct {
+	resultType string
+	result     Result
+}
+
+type Result struct {
+	metric Metric
+	value  []interface{}
+}
+
+type Metric struct {
+	url string
+}
+
+func (app *App) startTimer() queueTime {
+
+	var timeChannel queueTime
 	//need to utilize prometheus
-	// timeChannel.queueTime = make(chan time.Time)
-	var newTime time.Time
-	// var (
-	// 	buffer bytes.Buffer
-	// )
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "TIMER STARTED!")
 
-	// req
-	// _, err := http.NewRequest("GET", "http://localhost:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)", &buffer)
-
-	res, err := http.Get("http://localhost:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
+	res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
 	} else {
 		defer res.Body.Close()
 		contents, err := ioutil.ReadAll(res.Body)
+		var content Content
+		json.Unmarshal([]byte(contents), &content)
+		logging.Info(app.logger).Log(logging.MessageKey(), "PARSING JSON: "+content.status)
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
 		}
 		logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
+		queueDepth := 0
+		queueEmptyTime := time.Now()
+		if queueDepth == 0 {
+			app.queueTime.queueEmptiedTime = queueEmptyTime
+		}
 	}
-	newTime = time.Now()
-
-	//add prometheus code here to check time and put into channel
-	timeChannel.queueEmptiedTime = newTime
 	return timeChannel
 }

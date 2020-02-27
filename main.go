@@ -168,10 +168,10 @@ func main() {
 
 	router := mux.NewRouter()
 
-	var appChannel timeChannel
+	var queueTime queueTime
 	// appChannel.queueTime = make(chan time.Time)
 	app := &App{logger: logger,
-		channel: appChannel}
+		queueTime: queueTime}
 
 	// start listening
 
@@ -208,7 +208,6 @@ func main() {
 		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
 	}
 
-	// // currTime := <-app.channel.queueTime
 	logging.Info(logger).Log(logging.MessageKey(), "Getting Time from channel") //+currTime.String())
 
 	signals := make(chan os.Signal, 10)

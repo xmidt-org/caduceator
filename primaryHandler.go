@@ -34,7 +34,7 @@ import (
 //App used for logging and metrics
 type App struct {
 	logger     log.Logger
-	channel    timeChannel
+	queueTime  queueTime
 	cutoffTime time.Time
 }
 
@@ -63,7 +63,7 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 	// unmarshal json and parse information to new variable that will be inserted to channel in App struct
 
 	// app.channel.queueTime = make(chan time.Time)
-	app.channel = app.startTimer()
+	app.queueTime = app.startTimer()
 	return
 	// stop registering for events
 }
