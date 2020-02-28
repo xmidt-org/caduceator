@@ -23,13 +23,53 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/provider"
 	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/xmetrics"
 )
 
 // App used for logging and saving durations
+
+type Measures struct {
+	TimeInMemory metrics.Histogram
+}
+
+type timeTracker interface {
+	TrackTime(time.Duration)
+}
+
 type App struct {
-	logger    log.Logger
-	durations chan time.Duration
+	logger      log.Logger
+	durations   chan time.Duration
+	timeTracker timeTracker
+	measures    *Measures
+}
+
+const (
+	TimeInMemory = "xmidt_caduceator_queue_empty_duration"
+)
+
+func Metrics() []xmetrics.Metric {
+	return []xmetrics.Metric{
+		{
+			Name:      TimeInMemory,
+			Help:      "The duration it takes to empty queue in Caduceus.",
+			Type:      "histogram",
+			Namespace: "xmidt",
+			Subsystem: "caduceator",
+		},
+	}
+}
+
+func NewMeasures(p provider.Provider) *Measures {
+	return &Measures{
+		TimeInMemory: p.NewHistogram(TimeInMemory, 10),
+	}
+}
+
+func (m *Measures) TrackTime(length time.Duration) {
+	m.TimeInMemory.Observe(length.Seconds())
 }
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
@@ -46,7 +86,6 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
-
 	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS QUEUE IS FULL!")
 
 	cutoffTime := time.Now()
@@ -57,6 +96,9 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 	// add here for putting duration into metrics histogram
 	for duration := range app.durations {
 		logging.Info(app.logger).Log(logging.MessageKey(), "DURATION FROM CHANNEL: "+duration.String())
+		// app.timeTracker.TrackTime(duration)
+		app.measures.TimeInMemory.Observe(duration.Seconds())
+		logging.Info(app.logger).Log(logging.MessageKey(), "SENT METRIC TO PROMETHEUS")
 	}
 
 	return

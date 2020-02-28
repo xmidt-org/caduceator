@@ -52,34 +52,39 @@ type Metric struct {
 
 func (app *App) calculateDuration(cutoffTime time.Time) {
 
-	//making request to get caduceus queue depth metrics
-	res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
-	currentTime := time.Now()
-	if err != nil {
-		logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
-	} else {
-		defer res.Body.Close()
-
-		contents, err := ioutil.ReadAll(res.Body)
+	// make requests to get caduceus queue depth metrics
+Loop:
+	for {
+		res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
+		currentTime := time.Now()
 		if err != nil {
-			logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
-		}
-		logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
+			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
+		} else {
+			defer res.Body.Close()
 
-		var content Content
-		json.Unmarshal([]byte(contents), &content)
+			contents, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
+			}
+			logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
 
-		if content.Data.ResultType == "vector" {
-			for _, results := range content.Data.Result {
+			var content Content
+			json.Unmarshal([]byte(contents), &content)
 
-				//only calculating duration once queue size reaches 0
-				if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
+			if content.Data.ResultType == "vector" {
+				for _, results := range content.Data.Result {
 
-					//putting calculated duration into channel
-					app.durations <- currentTime.Sub(cutoffTime)
-					logging.Info(app.logger).Log(logging.MessageKey(), "PLACED DURATION IN CHANNEL!")
+					//only calculating duration once queue size reaches 0
+					if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
+
+						//putting calculated duration into channel
+						app.durations <- currentTime.Sub(cutoffTime)
+						logging.Info(app.logger).Log(logging.MessageKey(), "PLACED DURATION IN CHANNEL! "+currentTime.Sub(cutoffTime).String())
+						break Loop
+					}
 				}
 			}
 		}
 	}
+	return
 }

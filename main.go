@@ -51,6 +51,44 @@ const (
 	applicationName = "caduceator"
 )
 
+type Vegeta struct {
+	frequency   int
+	connections int
+	duration    time.Duration
+}
+
+type Request struct {
+	webhookConfig WebhookConfig
+	events        []string
+}
+
+type WebhookConfig struct {
+	url           string
+	failure_url   string
+	secret        string
+	maxRetryCount int
+}
+
+type Webhook struct {
+	registrationInterval string
+	timeout              int
+	RegistrationURL      string
+	request              Request
+	basic                string
+	jwt                  JWT
+}
+
+type JWT struct {
+	authURL string
+	timeout string
+	buffer  string
+}
+
+type Config struct {
+	vegeta  Vegeta
+	webhook Webhook
+}
+
 // Start function is used to send events to Caduceus
 func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
 
@@ -114,7 +152,7 @@ func main() {
 
 	var (
 		f, v                                     = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
-		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics)
+		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
 	)
 
 	// use constant secret for hash
@@ -164,7 +202,10 @@ func main() {
 
 	router := mux.NewRouter()
 
-	app := &App{logger: logger}
+	measures := NewMeasures(metricsRegistry)
+
+	app := &App{logger: logger,
+		measures: measures}
 
 	// start listening
 	logging.Info(logger).Log(logging.MessageKey(), "before handler")
@@ -180,12 +221,18 @@ func main() {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
 	}
 
+	config := new(Config)
+	v.Unmarshal(config.vegeta)
+
+	// add validations
+	// validateConfig(config)
+
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
-	rate := vegeta.Rate{Freq: 1500, Per: time.Second}
-	duration := 1 * time.Minute
+	rate := vegeta.Rate{Freq: config.vegeta.frequency, Per: time.Second}
+	duration := config.vegeta.duration * time.Minute
 
-	attacker := vegeta.NewAttacker(vegeta.Connections(500))
+	attacker := vegeta.NewAttacker(vegeta.Connections(config.vegeta.connections))
 	logging.Info(logger).Log(logging.MessageKey(), "vegeta before attacking")
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
