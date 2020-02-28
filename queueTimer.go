@@ -26,9 +26,9 @@ import (
 	"github.com/xmidt-org/webpa-common/logging"
 )
 
-type queueTime struct {
+type QueueTime struct {
 	queueEmptiedTime time.Time
-	queueDepth       int
+	cutoffTime       time.Time
 }
 
 type Content struct {
@@ -50,19 +50,9 @@ type Metric struct {
 	Url string
 }
 
-func (app *App) doEvery(d time.Duration, f func(time.Time)) {
-	for x := range time.Tick(d) {
-		f(x)
-	}
-}
+func (app *App) calculateDuration(cutoffTime time.Time) {
 
-func (app *App) startTimer() queueTime {
-
-	var times queueTime
-	//need to utilize prometheus
-
-	logging.Info(app.logger).Log(logging.MessageKey(), "TIMER STARTED!")
-
+	//making request to get caduceus queue depth metrics
 	res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
 	currentTime := time.Now()
 	if err != nil {
@@ -81,24 +71,15 @@ func (app *App) startTimer() queueTime {
 
 		if content.Data.ResultType == "vector" {
 			for _, results := range content.Data.Result {
-				if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
-					times.queueEmptiedTime = currentTime
-					times.queueDepth = 0
-					logging.Info(app.logger).Log(logging.MessageKey(), "TIME QUEUE GOT EMPTY (QUEUE TIME): "+times.queueEmptiedTime.String())
 
+				//only calculating duration once queue size reaches 0
+				if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
+
+					//putting calculated duration into channel
+					app.durations <- currentTime.Sub(cutoffTime)
+					logging.Info(app.logger).Log(logging.MessageKey(), "PLACED DURATION IN CHANNEL!")
 				}
 			}
 		}
-
-		// logging.Info(app.logger).Log(logging.MessageKey(), "PARSING JSON: "+content.Data.Result[0].Value[1].(string))
-
-		// logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
-		// queueDepth = content.Data.Result[0].Value[1].(int)
-		// queueEmptyTime := time.Now()
-		// if queueDepth == 0 {
-		// 	// app.queueTime.queueEmptiedTime = queueEmptyTime
-		// 	times.queueEmptiedTime = queueEmptyTime
-		// }
 	}
-	return times
 }

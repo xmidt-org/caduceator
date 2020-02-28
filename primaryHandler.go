@@ -26,15 +26,14 @@ import (
 	"github.com/xmidt-org/webpa-common/logging"
 )
 
-//App used for logging and metrics
+// App used for logging and saving durations
 type App struct {
-	logger     log.Logger
-	queueTime  queueTime
-	cutoffTime time.Time
+	logger    log.Logger
+	durations chan time.Duration
 }
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
-	logging.Info(app.logger).Log(logging.MessageKey(), "STARTED RECEIVING EVENTS!")
+	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS STARTED RECEIVING EVENTS!")
 
 	_, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -48,14 +47,17 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "QUEUE IS FULL!")
+	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS QUEUE IS FULL!")
 
-	app.cutoffTime = time.Now()
+	cutoffTime := time.Now()
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "PLACED START TIME IN CHANNEL")
+	app.durations = make(chan time.Duration)
+	go app.calculateDuration(cutoffTime)
 
-	app.queueTime = app.startTimer()
-	logging.Info(app.logger).Log(logging.MessageKey(), "TIME QUEUE GOT EMPTY (RECEIVE CUTOFF): "+app.queueTime.queueEmptiedTime.String())
+	// add here for putting duration into metrics histogram
+	for duration := range app.durations {
+		logging.Info(app.logger).Log(logging.MessageKey(), "DURATION FROM CHANNEL: "+duration.String())
+	}
 
 	return
 }

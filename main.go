@@ -55,7 +55,6 @@ const (
 func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
-		// logging.Info(logger).Log(logging.MessageKey(), "started sending events")
 
 		message := wrp.Message{
 			Type:            4,
@@ -81,7 +80,6 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
 			return err
 		}
-		// logging.Info(logger).Log(logging.MessageKey(), "encoded payload")
 
 		req, err := http.NewRequest("POST", "http://caduceus:6000/api/v3/notify", &buffer)
 		if err != nil {
@@ -106,8 +104,6 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 		}
 
 		defer resp.Body.Close()
-
-		// logging.Info(logger).Log(logging.MessageKey(), "finished sending event")
 
 		return err
 	}
@@ -168,12 +164,9 @@ func main() {
 
 	router := mux.NewRouter()
 
-	var queueTime queueTime
-	app := &App{logger: logger,
-		queueTime: queueTime}
+	app := &App{logger: logger}
 
 	// start listening
-
 	logging.Info(logger).Log(logging.MessageKey(), "before handler")
 
 	router.Handle("/events", eventHandler.ThenFunc(app.receiveEvents)).Methods("POST")
@@ -206,8 +199,6 @@ func main() {
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
 	}
-
-	logging.Info(logger).Log(logging.MessageKey(), "Getting Time from channel") //+currTime.String())
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
