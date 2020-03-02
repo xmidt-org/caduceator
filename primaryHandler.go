@@ -25,6 +25,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/provider"
+	vegeta "github.com/tsenart/vegeta/lib"
 	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/webpa-common/xmetrics"
 )
@@ -44,6 +45,7 @@ type App struct {
 	durations   chan time.Duration
 	timeTracker timeTracker
 	measures    *Measures
+	attacker    *vegeta.Attacker
 }
 
 const (
@@ -100,6 +102,9 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 		app.measures.TimeInMemory.Observe(duration.Seconds())
 		logging.Info(app.logger).Log(logging.MessageKey(), "SENT METRIC TO PROMETHEUS")
 	}
+
+	// after 30 attacks, then call attacker.stop()
+	// app.attacker.Stop()
 
 	return
 }

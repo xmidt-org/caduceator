@@ -216,8 +216,11 @@ func main() {
 
 	measures := NewMeasures(metricsRegistry)
 
+	attacker := vegeta.NewAttacker(vegeta.Connections(v.GetInt("vegeta.connections")))
+
 	app := &App{logger: logger,
-		measures: measures}
+		measures: measures,
+		attacker: attacker}
 
 	// start listening
 	logging.Info(logger).Log(logging.MessageKey(), "before handler")
@@ -241,7 +244,6 @@ func main() {
 	rate := vegeta.Rate{Freq: v.GetInt("vegeta.frequency"), Per: time.Second}
 	duration := v.GetDuration("vegeta.duration") * time.Minute
 
-	attacker := vegeta.NewAttacker(vegeta.Connections(v.GetInt("vegeta.connections")))
 	logging.Info(logger).Log(logging.MessageKey(), "vegeta before attacking")
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
