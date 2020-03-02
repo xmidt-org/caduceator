@@ -66,7 +66,7 @@ Loop:
 			if err != nil {
 				logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
 			}
-			logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
+			// logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
 
 			var content Content
 			json.Unmarshal([]byte(contents), &content)

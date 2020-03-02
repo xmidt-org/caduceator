@@ -73,6 +73,7 @@ func (m *Measures) TrackTime(length time.Duration) {
 }
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
+
 	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS STARTED RECEIVING EVENTS!")
 
 	_, err := ioutil.ReadAll(req.Body)
@@ -86,9 +87,9 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
-	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS QUEUE IS FULL!")
-
 	cutoffTime := time.Now()
+
+	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS QUEUE IS FULL!")
 
 	app.durations = make(chan time.Duration)
 	go app.calculateDuration(cutoffTime)
@@ -96,7 +97,6 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 	// add here for putting duration into metrics histogram
 	for duration := range app.durations {
 		logging.Info(app.logger).Log(logging.MessageKey(), "DURATION FROM CHANNEL: "+duration.String())
-		// app.timeTracker.TrackTime(duration)
 		app.measures.TimeInMemory.Observe(duration.Seconds())
 		logging.Info(app.logger).Log(logging.MessageKey(), "SENT METRIC TO PROMETHEUS")
 	}

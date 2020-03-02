@@ -201,7 +201,7 @@ webhook:
       # value isn't set, no registration happens.
       url: "http://caduceator:5000/events"
 
-      failure_url: http://caduceator:5000/cutoff
+      failure_url: "http://caduceator:5000/cutoff"
 
       # contentType provides the content type Svalinn expects from the requests 
       # it receives.

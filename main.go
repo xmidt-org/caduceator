@@ -51,42 +51,48 @@ const (
 	applicationName = "caduceator"
 )
 
-type Vegeta struct {
-	frequency   int
-	connections int
-	duration    time.Duration
+type Config struct {
+	VegetaConfig VegetaConfig
+	Webhook      Webhook
+	Secret       Secret
+}
+
+type VegetaConfig struct {
+	Frequency   int
+	Connections int
+	Duration    time.Duration
 }
 
 type Request struct {
-	webhookConfig WebhookConfig
-	events        []string
+	WebhookConfig WebhookConfig
+	Events        string
 }
 
 type WebhookConfig struct {
-	url           string
-	failure_url   string
-	secret        string
-	maxRetryCount int
+	URL           string
+	FailureURL    string
+	Secret        string
+	MaxRetryCount int
 }
 
 type Webhook struct {
-	registrationInterval string
-	timeout              int
+	RegistrationInterval string
+	Timeout              int
 	RegistrationURL      string
-	request              Request
-	basic                string
-	jwt                  JWT
+	Request              Request
+	Basic                string
+	JWT                  JWT
+}
+
+type Secret struct {
+	Header    string
+	Delimiter string
 }
 
 type JWT struct {
-	authURL string
-	timeout string
-	buffer  string
-}
-
-type Config struct {
-	vegeta  Vegeta
-	webhook Webhook
+	AuthURL string
+	Timeout string
+	Buffer  string
 }
 
 // Start function is used to send events to Caduceus
@@ -155,8 +161,11 @@ func main() {
 		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
 	)
 
+	// config := new(Config)
+	// v.Unmarshal(config)
+
 	// use constant secret for hash
-	secretGetter := secretGetter.NewConstantSecret("secret1234")
+	secretGetter := secretGetter.NewConstantSecret(v.GetString("webhook.request.config.secret"))
 
 	// set up the middleware
 	htf, err := hashTokenFactory.New("Sha1", sha1.New, secretGetter)
@@ -166,25 +175,28 @@ func main() {
 	}
 	authConstructor := basculehttp.NewConstructor(
 		basculehttp.WithTokenFactory("Sha1", htf),
-		basculehttp.WithHeaderName("X-Webpa-Signature"),
-		basculehttp.WithHeaderDelimiter("="),
+		basculehttp.WithHeaderName(v.GetString("secret.header")),
+		basculehttp.WithHeaderDelimiter(v.GetString("secret.delimiter")),
 	)
 	eventHandler := alice.New(authConstructor)
 	cutoffHandler := alice.New()
 	// set up the registerer
+	logging.Info(logger).Log(logging.MessageKey(), "WEBHOOK URL")
+	logging.Info(logger).Log(logging.MessageKey(), v.GetString("webhook.registrationURL"))
+
 	basicConfig := webhookClient.BasicConfig{
 		Timeout:         5 * time.Second,
-		RegistrationURL: "http://caduceus:6000/hook",
+		RegistrationURL: v.GetString("webhook.registrationURL"),
 		Request: webhook.W{
 			Config: webhook.Config{
-				URL: "http://caduceator:5000/events",
+				URL: v.GetString("webhook.request.config.url"),
 			},
-			Events:     []string{"device-status.*"},
-			FailureURL: "http://caduceator:5000/cutoff",
+			Events:     []string{v.GetString("webhook.request.events")},
+			FailureURL: v.GetString("webhook.request.config.failure_url"),
 		},
 	}
 
-	acquirer, err := acquire.NewFixedAuthAcquirer("Basic dXNlcjpwYXNz")
+	acquirer, err := acquire.NewFixedAuthAcquirer(v.GetString("webhook.basic"))
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to create basic auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
@@ -221,18 +233,15 @@ func main() {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
 	}
 
-	config := new(Config)
-	v.Unmarshal(config.vegeta)
-
 	// add validations
 	// validateConfig(config)
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
-	rate := vegeta.Rate{Freq: config.vegeta.frequency, Per: time.Second}
-	duration := config.vegeta.duration * time.Minute
+	rate := vegeta.Rate{Freq: v.GetInt("vegeta.frequency"), Per: time.Second}
+	duration := v.GetDuration("vegeta.duration") * time.Minute
 
-	attacker := vegeta.NewAttacker(vegeta.Connections(config.vegeta.connections))
+	attacker := vegeta.NewAttacker(vegeta.Connections(v.GetInt("vegeta.connections")))
 	logging.Info(logger).Log(logging.MessageKey(), "vegeta before attacking")
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
