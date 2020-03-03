@@ -62,6 +62,7 @@ type VegetaConfig struct {
 	Frequency   int
 	Connections int
 	Duration    time.Duration
+	MaxRoutines int64
 }
 
 type Request struct {
@@ -160,8 +161,8 @@ func main() {
 		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
 	)
 
-	// config := new(Config)
-	// v.Unmarshal(config)
+	config := new(Config)
+	v.Unmarshal(config)
 
 	// use constant secret for hash
 	secretGetter := secretGetter.NewConstantSecret(v.GetString("webhook.request.config.secret"))

@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -44,22 +43,19 @@ type timeTracker interface {
 }
 
 type App struct {
-	logger      log.Logger
-	durations   chan time.Duration
-	timeTracker timeTracker
-	measures    *Measures
-	attacker    *vegeta.Attacker
-	counter     int64
-	maxRoutines int64
-	mutex       *sync.Mutex
+	logger         log.Logger
+	durations      chan time.Duration
+	timeTracker    timeTracker
+	measures       *Measures
+	attacker       *vegeta.Attacker
+	counter        int64
+	maxRoutines    int64
+	mutex          *sync.Mutex
+	currentCounter int64
 }
 
 const (
 	TimeInMemory = "xmidt_caduceator_queue_empty_duration"
-)
-
-var (
-	currentCounter int64
 )
 
 func Metrics() []xmetrics.Metric {
@@ -106,46 +102,29 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
 	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
-	// logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Atoi(int(app.counter)))
 
 	// adding here about sempahore/ and tryAcquire
 
 	app.mutex.Lock()
-	currentCounter = app.counter
-	app.mutex.Unlock()
 
-	if currentCounter < app.maxRoutines {
+	if app.counter < app.maxRoutines {
 		logging.Info(app.logger).Log(logging.MessageKey(), "ENTERED FIRST COND")
-
-		atomic.AddInt64(&app.counter, 1)
+		app.counter++
 		logging.Info(app.logger).Log(logging.MessageKey(), "ABOUT TO SPAWN GO ROUTINE")
-
 		go app.calculateDuration(cutoffTime)
+		app.mutex.Unlock()
 
-	}
-
-	if currentCounter == app.maxRoutines {
+	} else if app.counter == app.maxRoutines {
+		app.mutex.Unlock()
 		logging.Info(app.logger).Log(logging.MessageKey(), "REACHED MAX ROUTINES")
-
 		for i := 1; i <= int(app.maxRoutines); i++ {
-			logging.Info(app.logger).Log(logging.MessageKey(), "LOOPING CHANNEL")
 			time := <-app.durations
+			logging.Info(app.logger).Log(logging.MessageKey(), "LOOPING CHANNEL: "+time.String())
 			app.measures.TimeInMemory.Observe(time.Seconds())
 			if i == int(app.maxRoutines) {
 				app.attacker.Stop()
 			}
 		}
-
-		// for duration := range app.durations {
-		// 	logging.Info(app.logger).Log(logging.MessageKey(), "DURATION FROM CHANNEL: "+duration.String())
-		// 	app.measures.TimeInMemory.Observe(duration.Seconds())
-		// 	logging.Info(app.logger).Log(logging.MessageKey(), "SENT METRIC TO PROMETHEUS")
-		// 	if len(app.durations) == 0 {
-		// 		app.attacker.Stop()
-		// 	}
-		// }
-
 	}
-
 	return
 }

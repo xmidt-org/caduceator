@@ -141,7 +141,7 @@ log:
   json: true
 
 
-vegeta:
+vegetaConfig:
 
   frequency: 1000
 
@@ -149,7 +149,7 @@ vegeta:
   # Required how long vegeta should attack (minutes)
   duration: 0
 
-  maxroutines: 5
+  maxroutines: 30
 
 
 ########################################
