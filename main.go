@@ -141,12 +141,10 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 		req.Header.Add("Authorization", authValue)
 
 		resp, err := http.DefaultClient.Do(req)
-
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request", logging.ErrorKey(), err.Error())
 			return err
 		}
-
 		defer resp.Body.Close()
 
 		return err
@@ -223,7 +221,7 @@ func main() {
 	app := &App{logger: logger,
 		measures:    measures,
 		attacker:    attacker,
-		maxRoutines: v.GetInt("vegeta.maxroutines"),
+		maxRoutines: v.GetInt64("vegeta.maxroutines"),
 		counter:     0,
 		durations:   durations,
 	}
