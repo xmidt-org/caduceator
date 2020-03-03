@@ -218,9 +218,15 @@ func main() {
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(v.GetInt("vegeta.connections")))
 
+	durations := make(chan time.Duration, v.GetInt("vegeta.maxroutines"))
+
 	app := &App{logger: logger,
-		measures: measures,
-		attacker: attacker}
+		measures:    measures,
+		attacker:    attacker,
+		maxRoutines: v.GetInt("vegeta.maxroutines"),
+		counter:     0,
+		durations:   durations,
+	}
 
 	// start listening
 	logging.Info(logger).Log(logging.MessageKey(), "before handler")
@@ -235,9 +241,6 @@ func main() {
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
 	}
-
-	// add validations
-	// validateConfig(config)
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics

@@ -52,9 +52,11 @@ type Metric struct {
 
 func (app *App) calculateDuration(cutoffTime time.Time) {
 
+	logging.Info(app.logger).Log(logging.MessageKey(), "ENTERED DURATION FUNC")
 	// make requests to get caduceus queue depth metrics
 Loop:
 	for {
+
 		res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
 		currentTime := time.Now()
 		if err != nil {
@@ -66,7 +68,6 @@ Loop:
 			if err != nil {
 				logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
 			}
-			// logging.Info(app.logger).Log(logging.MessageKey(), string(contents))
 
 			var content Content
 			json.Unmarshal([]byte(contents), &content)
@@ -76,9 +77,11 @@ Loop:
 
 					//only calculating duration once queue size reaches 0
 					if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
+						logging.Info(app.logger).Log(logging.MessageKey(), "INSIDE LOOP")
 
 						//putting calculated duration into channel
 						app.durations <- currentTime.Sub(cutoffTime)
+
 						logging.Info(app.logger).Log(logging.MessageKey(), "PLACED DURATION IN CHANNEL! "+currentTime.Sub(cutoffTime).String())
 						break Loop
 					}

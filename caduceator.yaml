@@ -147,7 +147,9 @@ vegeta:
 
   connections: 500
   # Required how long vegeta should attack (minutes)
-  duration: 1
+  duration: 0
+
+  maxroutines: 30
 
 
 ########################################

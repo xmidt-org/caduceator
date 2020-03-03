@@ -20,6 +20,7 @@ package main
 import (
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -46,6 +47,8 @@ type App struct {
 	timeTracker timeTracker
 	measures    *Measures
 	attacker    *vegeta.Attacker
+	counter     int
+	maxRoutines int
 }
 
 const (
@@ -89,22 +92,37 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
+
 	cutoffTime := time.Now()
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS QUEUE IS FULL!")
 
-	app.durations = make(chan time.Duration)
-	go app.calculateDuration(cutoffTime)
+	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(app.counter))
+	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(app.maxRoutines))
 
-	// add here for putting duration into metrics histogram
-	for duration := range app.durations {
-		logging.Info(app.logger).Log(logging.MessageKey(), "DURATION FROM CHANNEL: "+duration.String())
-		app.measures.TimeInMemory.Observe(duration.Seconds())
-		logging.Info(app.logger).Log(logging.MessageKey(), "SENT METRIC TO PROMETHEUS")
+	if app.counter < app.maxRoutines {
+		logging.Info(app.logger).Log(logging.MessageKey(), "ENTERED FIRST COND")
+
+		app.counter++
+		logging.Info(app.logger).Log(logging.MessageKey(), "ABOUT TO SPAWN GO ROUTINE")
+
+		go app.calculateDuration(cutoffTime)
+
 	}
 
-	// after 30 attacks, then call attacker.stop()
-	// app.attacker.Stop()
+	if app.counter == app.maxRoutines {
+		logging.Info(app.logger).Log(logging.MessageKey(), "REACHED MAX ROUTINES")
+
+		for duration := range app.durations {
+			logging.Info(app.logger).Log(logging.MessageKey(), "DURATION FROM CHANNEL: "+duration.String())
+			app.measures.TimeInMemory.Observe(duration.Seconds())
+			logging.Info(app.logger).Log(logging.MessageKey(), "SENT METRIC TO PROMETHEUS")
+			if len(app.durations) == 0 {
+				app.attacker.Stop()
+			}
+		}
+
+	}
 
 	return
 }
