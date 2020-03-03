@@ -80,6 +80,7 @@ Loop:
 						logging.Info(app.logger).Log(logging.MessageKey(), "INSIDE LOOP")
 
 						//putting calculated duration into channel
+
 						app.durations <- currentTime.Sub(cutoffTime)
 
 						logging.Info(app.logger).Log(logging.MessageKey(), "PLACED DURATION IN CHANNEL! "+currentTime.Sub(cutoffTime).String())

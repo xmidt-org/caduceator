@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -50,10 +51,15 @@ type App struct {
 	attacker    *vegeta.Attacker
 	counter     int64
 	maxRoutines int64
+	mutex       *sync.Mutex
 }
 
 const (
 	TimeInMemory = "xmidt_caduceator_queue_empty_duration"
+)
+
+var (
+	currentCounter int64
 )
 
 func Metrics() []xmetrics.Metric {
@@ -104,7 +110,11 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	// adding here about sempahore/ and tryAcquire
 
-	if app.counter < app.maxRoutines {
+	app.mutex.Lock()
+	currentCounter = app.counter
+	app.mutex.Unlock()
+
+	if currentCounter < app.maxRoutines {
 		logging.Info(app.logger).Log(logging.MessageKey(), "ENTERED FIRST COND")
 
 		atomic.AddInt64(&app.counter, 1)
@@ -114,7 +124,7 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	}
 
-	if app.counter == app.maxRoutines {
+	if currentCounter == app.maxRoutines {
 		logging.Info(app.logger).Log(logging.MessageKey(), "REACHED MAX ROUTINES")
 
 		for i := 1; i <= int(app.maxRoutines); i++ {

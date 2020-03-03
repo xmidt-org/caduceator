@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -224,6 +225,7 @@ func main() {
 		maxRoutines: v.GetInt64("vegeta.maxroutines"),
 		counter:     0,
 		durations:   durations,
+		mutex:       &sync.Mutex{},
 	}
 
 	// start listening
