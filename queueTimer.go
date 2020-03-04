@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/xmidt-org/webpa-common/logging"
@@ -52,12 +53,16 @@ type Metric struct {
 
 func (app *App) calculateDuration(cutoffTime time.Time) {
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "ENTERED DURATION FUNC")
+	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function.")
 	// make requests to get caduceus queue depth metrics
 Loop:
 	for {
 
-		res, err := http.Get("http://prometheus:9090/api/v1/query?query=sum(xmidt_caduceus_outgoing_queue_depths)%20by%20(url)")
+		r := strings.NewReplacer(" ", "%20")
+		expressionResult := r.Replace(app.queryExpression)
+
+		res, err := http.Get(app.queryURL + "?query=" + expressionResult)
+
 		currentTime := time.Now()
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
@@ -76,14 +81,12 @@ Loop:
 				for _, results := range content.Data.Result {
 
 					//only calculating duration once queue size reaches 0
-					if results.Metric.Url == "http://caduceator:5000/events" && results.Value[1] == "0" {
-						logging.Info(app.logger).Log(logging.MessageKey(), "INSIDE LOOP")
+					if results.Metric.Url == app.metricsURL && results.Value[1] == "0" {
 
 						//putting calculated duration into channel
-
 						app.durations <- currentTime.Sub(cutoffTime)
 
-						logging.Info(app.logger).Log(logging.MessageKey(), "PLACED DURATION IN CHANNEL! "+currentTime.Sub(cutoffTime).String())
+						logging.Info(app.logger).Log(logging.MessageKey(), "placed duration in channel: "+currentTime.Sub(cutoffTime).String())
 						break Loop
 					}
 				}

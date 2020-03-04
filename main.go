@@ -53,16 +53,18 @@ const (
 )
 
 type Config struct {
-	VegetaConfig VegetaConfig
-	Webhook      Webhook
-	Secret       Secret
+	VegetaConfig     VegetaConfig
+	Webhook          Webhook
+	Secret           Secret
+	PrometheusConfig PrometheusConfig
+	MetricConfig     MetricConfig
 }
 
 type VegetaConfig struct {
 	Frequency   int
 	Connections int
 	Duration    time.Duration
-	MaxRoutines int64
+	MaxRoutines int
 }
 
 type Request struct {
@@ -95,6 +97,16 @@ type JWT struct {
 	AuthURL string
 	Timeout string
 	Buffer  string
+}
+
+type PrometheusConfig struct {
+	QueryURL        string
+	QueryExpression string
+}
+
+type MetricConfig struct {
+	Address    string
+	MetricsURL string
 }
 
 // Start function is used to send events to Caduceus
@@ -165,7 +177,7 @@ func main() {
 	v.Unmarshal(config)
 
 	// use constant secret for hash
-	secretGetter := secretGetter.NewConstantSecret(v.GetString("webhook.request.config.secret"))
+	secretGetter := secretGetter.NewConstantSecret(config.Webhook.Request.WebhookConfig.Secret)
 
 	// set up the middleware
 	htf, err := hashTokenFactory.New("Sha1", sha1.New, secretGetter)
@@ -175,28 +187,27 @@ func main() {
 	}
 	authConstructor := basculehttp.NewConstructor(
 		basculehttp.WithTokenFactory("Sha1", htf),
-		basculehttp.WithHeaderName(v.GetString("secret.header")),
-		basculehttp.WithHeaderDelimiter(v.GetString("secret.delimiter")),
+		basculehttp.WithHeaderName(config.Secret.Header),
+		basculehttp.WithHeaderDelimiter(config.Secret.Delimiter),
 	)
 	eventHandler := alice.New(authConstructor)
 	cutoffHandler := alice.New()
+
 	// set up the registerer
-	logging.Info(logger).Log(logging.MessageKey(), "WEBHOOK URL")
-	logging.Info(logger).Log(logging.MessageKey(), v.GetString("webhook.registrationURL"))
 
 	basicConfig := webhookClient.BasicConfig{
 		Timeout:         5 * time.Second,
-		RegistrationURL: v.GetString("webhook.registrationURL"),
+		RegistrationURL: config.Webhook.RegistrationURL,
 		Request: webhook.W{
 			Config: webhook.Config{
-				URL: v.GetString("webhook.request.config.url"),
+				URL: config.Webhook.Request.WebhookConfig.URL,
 			},
-			Events:     []string{v.GetString("webhook.request.events")},
-			FailureURL: v.GetString("webhook.request.config.failure_url"),
+			Events:     []string{config.Webhook.Request.Events},
+			FailureURL: config.Webhook.Request.WebhookConfig.FailureURL,
 		},
 	}
 
-	acquirer, err := acquire.NewFixedAuthAcquirer(v.GetString("webhook.basic"))
+	acquirer, err := acquire.NewFixedAuthAcquirer(config.Webhook.Basic)
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to create basic auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
@@ -216,17 +227,20 @@ func main() {
 
 	measures := NewMeasures(metricsRegistry)
 
-	attacker := vegeta.NewAttacker(vegeta.Connections(v.GetInt("vegeta.connections")))
+	attacker := vegeta.NewAttacker(vegeta.Connections(config.VegetaConfig.Connections))
 
-	durations := make(chan time.Duration, v.GetInt("vegeta.maxroutines"))
+	durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
 
 	app := &App{logger: logger,
-		measures:    measures,
-		attacker:    attacker,
-		maxRoutines: v.GetInt64("vegeta.maxroutines"),
-		counter:     0,
-		durations:   durations,
-		mutex:       &sync.Mutex{},
+		measures:        measures,
+		attacker:        attacker,
+		maxRoutines:     config.VegetaConfig.MaxRoutines,
+		counter:         0,
+		durations:       durations,
+		mutex:           &sync.Mutex{},
+		queryURL:        config.PrometheusConfig.QueryURL,
+		queryExpression: config.PrometheusConfig.QueryExpression,
+		metricsURL:      config.MetricConfig.MetricsURL,
 	}
 
 	// start listening
@@ -245,10 +259,8 @@ func main() {
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
-	rate := vegeta.Rate{Freq: v.GetInt("vegeta.frequency"), Per: time.Second}
-	duration := v.GetDuration("vegeta.duration") * time.Minute
-
-	logging.Info(logger).Log(logging.MessageKey(), "vegeta before attacking")
+	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
+	duration := config.VegetaConfig.Duration * time.Minute
 
 	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
 		metrics.Add(res)

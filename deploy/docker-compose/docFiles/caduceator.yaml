@@ -82,13 +82,16 @@ pprof:
 
 # metric defines the details needed for the prometheus metrics endpoint
 # (Optional)
-metric:
+metricConfig:
   # address provides the port number for the endpoint to bind to.  Port 9389
   # was chosen because it does not conflict with any of the other prometheus
   # metrics or other machines in the xmidt cluster.  You may use any port you
   # wish.
   address: ":5003"
 
+
+
+  metricsURL: "http://caduceator:5000/events"
   # metricsOptions provides the details needed to configure the prometheus
   # metric data.  Metrics generally have the form:
   #
@@ -107,6 +110,8 @@ metric:
     # subsystem is the subsystem of the metrics provided
     # (Optional)
     subsystem: caduceator
+
+
 
 ########################################
 #   Logging Related Configuration
@@ -141,7 +146,7 @@ log:
   json: true
 
 
-vegeta:
+vegetaConfig:
 
   frequency: 1000
 
@@ -149,7 +154,14 @@ vegeta:
   # Required how long vegeta should attack (minutes)
   duration: 0
 
-  maxroutines: 30
+  maxRoutines: 5
+
+
+prometheusConfig:
+
+  queryURL: "http://prometheus:9090/api/v1/query"
+  
+  queryExpression: "sum(xmidt_caduceus_outgoing_queue_depths) by (url)"
 
 
 ########################################
@@ -198,12 +210,12 @@ webhook:
   request:
     # config provides configuration values for the requests to the webhook 
     # receiver.
-    config:
+    webhookConfig:
       # url provides the server the webhook should send the events to.  If this 
       # value isn't set, no registration happens.
       url: "http://caduceator:5000/events"
 
-      failure_url: "http://caduceator:5000/cutoff"
+      failureURL: "http://caduceator:5000/cutoff"
 
       # contentType provides the content type Svalinn expects from the requests 
       # it receives.

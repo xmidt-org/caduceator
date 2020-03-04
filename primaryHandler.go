@@ -43,19 +43,21 @@ type timeTracker interface {
 }
 
 type App struct {
-	logger         log.Logger
-	durations      chan time.Duration
-	timeTracker    timeTracker
-	measures       *Measures
-	attacker       *vegeta.Attacker
-	counter        int64
-	maxRoutines    int64
-	mutex          *sync.Mutex
-	currentCounter int64
+	logger          log.Logger
+	durations       chan time.Duration
+	timeTracker     timeTracker
+	measures        *Measures
+	attacker        *vegeta.Attacker
+	counter         int
+	maxRoutines     int
+	mutex           *sync.Mutex
+	queryURL        string
+	queryExpression string
+	metricsURL      string
 }
 
 const (
-	TimeInMemory = "xmidt_caduceator_queue_empty_duration"
+	TimeInMemory = "queue_empty_duration"
 )
 
 func Metrics() []xmetrics.Metric {
@@ -82,7 +84,7 @@ func (m *Measures) TrackTime(length time.Duration) {
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS STARTED RECEIVING EVENTS!")
+	logging.Info(app.logger).Log(logging.MessageKey(), "caduceaus started receiving events")
 
 	_, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -98,32 +100,29 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	cutoffTime := time.Now()
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "CADUCEUS QUEUE IS FULL!")
+	logging.Info(app.logger).Log(logging.MessageKey(), "caduceus queue is full")
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
 	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
 
-	// adding here about sempahore/ and tryAcquire
-
 	app.mutex.Lock()
 
 	if app.counter < app.maxRoutines {
-		logging.Info(app.logger).Log(logging.MessageKey(), "ENTERED FIRST COND")
 		app.counter++
-		logging.Info(app.logger).Log(logging.MessageKey(), "ABOUT TO SPAWN GO ROUTINE")
 		go app.calculateDuration(cutoffTime)
 		app.mutex.Unlock()
 
 	} else if app.counter == app.maxRoutines {
 		app.mutex.Unlock()
-		logging.Info(app.logger).Log(logging.MessageKey(), "REACHED MAX ROUTINES")
+		logging.Info(app.logger).Log(logging.MessageKey(), "reached max routines")
 		for i := 1; i <= int(app.maxRoutines); i++ {
-			time := <-app.durations
-			logging.Info(app.logger).Log(logging.MessageKey(), "LOOPING CHANNEL: "+time.String())
-			app.measures.TimeInMemory.Observe(time.Seconds())
+			timeInChan := <-app.durations
+			logging.Info(app.logger).Log(logging.MessageKey(), "durations in channel: "+timeInChan.String())
+			app.measures.TimeInMemory.Observe(timeInChan.Seconds())
 			if i == int(app.maxRoutines) {
 				app.attacker.Stop()
 			}
+
 		}
 	}
 	return
