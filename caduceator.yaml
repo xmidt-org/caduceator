@@ -82,16 +82,13 @@ pprof:
 
 # metric defines the details needed for the prometheus metrics endpoint
 # (Optional)
-metricConfig:
+metric:
   # address provides the port number for the endpoint to bind to.  Port 9389
   # was chosen because it does not conflict with any of the other prometheus
   # metrics or other machines in the xmidt cluster.  You may use any port you
   # wish.
   address: ":5003"
 
-
-
-  metricsURL: "http://caduceator:5000/events"
   # metricsOptions provides the details needed to configure the prometheus
   # metric data.  Metrics generally have the form:
   #
@@ -152,7 +149,7 @@ vegetaConfig:
   # Required how long vegeta should attack (minutes)
   duration: 0
 
-  maxRoutines: 30
+  maxRoutines: 10
 
 
 prometheusConfig:
@@ -161,6 +158,7 @@ prometheusConfig:
   
   queryExpression: "sum(xmidt_caduceus_outgoing_queue_depths) by (url)"
 
+  metricsURL: "http://caduceator:5000/events"
 
 ########################################
 #   Authorization Related Configuration

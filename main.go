@@ -57,7 +57,7 @@ type Config struct {
 	Webhook          Webhook
 	Secret           Secret
 	PrometheusConfig PrometheusConfig
-	MetricConfig     MetricConfig
+	// MetricConfig     MetricConfig
 }
 
 type VegetaConfig struct {
@@ -102,11 +102,7 @@ type JWT struct {
 type PrometheusConfig struct {
 	QueryURL        string
 	QueryExpression string
-}
-
-type MetricConfig struct {
-	Address    string
-	MetricsURL string
+	MetricsURL      string
 }
 
 // Start function is used to send events to Caduceus
@@ -240,7 +236,7 @@ func main() {
 		mutex:           &sync.Mutex{},
 		queryURL:        config.PrometheusConfig.QueryURL,
 		queryExpression: config.PrometheusConfig.QueryExpression,
-		metricsURL:      config.MetricConfig.MetricsURL,
+		metricsURL:      config.PrometheusConfig.MetricsURL,
 	}
 
 	// start listening

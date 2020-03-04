@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
+	"net/url"
 	"time"
 
 	"github.com/xmidt-org/webpa-common/logging"
@@ -58,10 +58,9 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 Loop:
 	for {
 
-		r := strings.NewReplacer(" ", "%20")
-		expressionResult := r.Replace(app.queryExpression)
+		encodedQuery := &url.URL{Path: app.queryExpression}
 
-		res, err := http.Get(app.queryURL + "?query=" + expressionResult)
+		res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
 
 		currentTime := time.Now()
 		if err != nil {
