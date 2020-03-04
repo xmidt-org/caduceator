@@ -27,11 +27,6 @@ import (
 	"github.com/xmidt-org/webpa-common/logging"
 )
 
-type QueueTime struct {
-	queueEmptiedTime time.Time
-	cutoffTime       time.Time
-}
-
 type Content struct {
 	Status string
 	Data   Data

@@ -43,9 +43,9 @@ type timeTracker interface {
 }
 
 type App struct {
-	logger          log.Logger
-	durations       chan time.Duration
-	timeTracker     timeTracker
+	logger    log.Logger
+	durations chan time.Duration
+	// timeTracker     timeTracker
 	measures        *Measures
 	attacker        *vegeta.Attacker
 	counter         int
@@ -122,7 +122,6 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 			if i == int(app.maxRoutines) {
 				app.attacker.Stop()
 			}
-
 		}
 	}
 	return

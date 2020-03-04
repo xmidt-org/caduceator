@@ -145,11 +145,11 @@ vegetaConfig:
 
   frequency: 1000
 
-  connections: 500
+  connections: 1000
   # Required how long vegeta should attack (minutes)
   duration: 0
 
-  maxRoutines: 10
+  maxRoutines: 6
 
 
 prometheusConfig:
