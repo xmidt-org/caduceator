@@ -26,8 +26,8 @@
   numWorkerThreads: 10
   jobQueueSize: 10
   sender:
-    numWorkersPerSender: 5000
-    queueSizePerSender: 100000
+    numWorkersPerSender: 2
+    queueSizePerSender: 50
     cutOffPeriod: 10s
     linger: 180s
     clientTimeout: 60s
