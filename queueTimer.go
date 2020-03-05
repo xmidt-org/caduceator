@@ -48,7 +48,8 @@ type Metric struct {
 
 func (app *App) calculateDuration(cutoffTime time.Time) {
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function.")
+	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
+
 	// make requests to get caduceus queue depth metrics
 Loop:
 	for {

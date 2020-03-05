@@ -32,20 +32,14 @@ import (
 	"github.com/xmidt-org/webpa-common/xmetrics"
 )
 
-// App used for logging and saving durations
-
 type Measures struct {
 	TimeInMemory metrics.Histogram
 }
 
-type timeTracker interface {
-	TrackTime(time.Duration)
-}
-
+// App used for logging and saving durations
 type App struct {
-	logger    log.Logger
-	durations chan time.Duration
-	// timeTracker     timeTracker
+	logger          log.Logger
+	durations       chan time.Duration
 	measures        *Measures
 	attacker        *vegeta.Attacker
 	counter         int
