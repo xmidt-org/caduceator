@@ -191,7 +191,6 @@ func main() {
 	cutoffHandler := alice.New()
 
 	// set up the registerer
-
 	basicConfig := webhookClient.BasicConfig{
 		Timeout:         5 * time.Second,
 		RegistrationURL: config.Webhook.RegistrationURL,

@@ -102,9 +102,6 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "caduceus queue is full")
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
-	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
-
 	app.mutex.Lock()
 
 	if app.counter < app.maxRoutines {
@@ -114,15 +111,11 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	} else if app.counter == app.maxRoutines {
 		app.mutex.Unlock()
-		logging.Info(app.logger).Log(logging.MessageKey(), "reached max routines")
-		for i := 1; i <= int(app.maxRoutines); i++ {
-			timeInChan := <-app.durations
-			logging.Info(app.logger).Log(logging.MessageKey(), "durations in channel: "+timeInChan.String())
-			app.measures.TimeInMemory.Observe(timeInChan.Seconds())
-			if i == int(app.maxRoutines) {
-				app.attacker.Stop()
-			}
-		}
+		app.attacker.Stop()
 	}
+
+	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
+	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
+
 	return
 }

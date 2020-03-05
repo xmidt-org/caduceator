@@ -1,7 +1,7 @@
 ---
 
 # The unique fully-qualified-domain-name of the server.  It is provided to 
-# the X-Gungnir-Server header for showing what server fulfilled the request 
+# the X-Caduceator-Server header for showing what server fulfilled the request 
 # sent.
 # (Optional)
 server: "caduceator-instance-123.example.com"
@@ -10,19 +10,19 @@ server: "caduceator-instance-123.example.com"
 #   Labeling/Tracing via HTTP Headers Configuration
 ########################################
 
-# Provides this build number to the X-Gungnir-Build header for
+# Provides this build number to the X-Caduceator-Build header for
 # showing machine version information.  The build number SHOULD
 # match the scheme `version-build` but there is not a strict requirement.
 # (Optional)
 build:
 
-# Provides the region information to the X-Gungnir-Region header
+# Provides the region information to the X-Caduceator-Region header
 # for showing what region this machine is located in.  The region
 # is arbitrary and optional.
 # (Optional)
 region:
 
-# Provides the flavor information to the X-Gungnir-Flavor header
+# Provides the flavor information to the X-Caduceator-Flavor header
 # for showing what flavor this machine is associated with.  The flavor
 # is arbitrary and optional.
 # (Optional)
@@ -97,7 +97,7 @@ metric:
   # so if you use the suggested value below, your metrics are prefixed like
   # this:
   #
-  # codex_gungnir_{metric}
+  # xmidt_caduceator_{metric}
   #
   # (Optional)
   metricsOptions:
@@ -117,7 +117,7 @@ log:
   # file is the name of the most recent log file.  If set to "stdout" this
   # will log to os.Stdout.
   # (Optional) defaults to os.TempDir()
-  #file: "/var/log/gungnir/gungnir.log"
+  #file: "/var/log/caduceator/caduceator.log"
   file: "stdout"
 
   # level is the logging level to use - INFO, DEBUG, WARN, ERROR
@@ -140,24 +140,43 @@ log:
   # (Optional) defaults to false
   json: true
 
+########################################
+#   Vegeta Related Configuration
+########################################
 
+# vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
 
-  frequency: 1000
+  # frequency is the number of times vegeta will attack target in a second
+  frequency: 1500
 
-  connections: 1000
-  # Required how long vegeta should attack (minutes)
+  # connections is the number of idle open connections per target host
+  connections: 500
+  
+  # duration is how long vegeta should keep attacking caduceus
+  # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
   duration: 0
 
-  maxRoutines: 6
+  # maxRoutines is the number of times we want caduceus to be cutoff
+  maxRoutines: 2
 
+########################################
+#   Prometheus Related Configuration
+########################################
 
+# prometheusConfig defines details realted to querying metrics from prometheus. 
+# If the below values are all provided, a request is made to the 
+# URL to get the metric from the expression. 
 prometheusConfig:
 
+  # queryURL is the server where to query metrics
   queryURL: "http://prometheus:9090/api/v1/query"
   
+  # queryExpression is the expression used to get metricss
   queryExpression: "sum(xmidt_caduceus_outgoing_queue_depths) by (url)"
 
+  # metricsURL is used to confirm the values from metrics that are received 
+  # is from the endpoint in which events are sent to
   metricsURL: "http://caduceator:5000/events"
 
 ########################################
@@ -281,4 +300,3 @@ webhook:
     # buffer is the length of time before a token expires to get a new token.
     # (Optional)
     buffer: "5s"
-

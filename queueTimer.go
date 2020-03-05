@@ -77,10 +77,10 @@ Loop:
 					//only calculating duration once queue size reaches 0
 					if results.Metric.Url == app.metricsURL && results.Value[1] == "0" {
 
-						//putting calculated duration into channel
-						app.durations <- currentTime.Sub(cutoffTime)
+						//putting calculated duration into histogram metric
+						app.measures.TimeInMemory.Observe(currentTime.Sub(cutoffTime).Seconds())
 
-						logging.Info(app.logger).Log(logging.MessageKey(), "placed duration in channel: "+currentTime.Sub(cutoffTime).String())
+						logging.Info(app.logger).Log(logging.MessageKey(), "sent hsitogram metric to prometheus: "+currentTime.Sub(cutoffTime).String())
 						break Loop
 					}
 				}
