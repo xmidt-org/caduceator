@@ -148,7 +148,7 @@ log:
 vegetaConfig:
 
   # frequency is the number of times vegeta will attack target in a second
-  frequency: 1500
+  frequency: 1000
 
   # connections is the number of idle open connections per target host
   connections: 500

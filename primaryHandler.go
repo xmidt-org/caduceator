@@ -68,6 +68,7 @@ func Metrics() []xmetrics.Metric {
 			Type:      "histogram",
 			Namespace: "xmidt",
 			Subsystem: "caduceator",
+			Buckets:   []float64{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.5, 0.7, 1, 1.5, 2},
 		},
 	}
 }
