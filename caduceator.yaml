@@ -160,6 +160,8 @@ vegetaConfig:
   # maxRoutines is the number of times we want caduceus to be cutoff
   maxRoutines: 2
 
+  postURL: "http://caduceus:6000/api/v3/notify"
+
 ########################################
 #   Prometheus Related Configuration
 ########################################

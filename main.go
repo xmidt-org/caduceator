@@ -65,6 +65,7 @@ type VegetaConfig struct {
 	Connections int
 	Duration    time.Duration
 	MaxRoutines int
+	PostURL     string
 }
 
 type Request struct {
@@ -106,7 +107,7 @@ type PrometheusConfig struct {
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) vegeta.Targeter {
+func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
 
@@ -135,7 +136,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger) v
 			return err
 		}
 
-		req, err := http.NewRequest("POST", "http://caduceus:6000/api/v3/notify", &buffer)
+		req, err := http.NewRequest("POST", requestURL, &buffer)
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
 			return err
@@ -258,7 +259,7 @@ func main() {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
 	duration := config.VegetaConfig.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
