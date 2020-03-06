@@ -137,6 +137,7 @@ func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger, r
 		}
 
 		req, err := http.NewRequest("POST", requestURL, &buffer)
+
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
 			return err
