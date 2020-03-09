@@ -54,11 +54,12 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 Loop:
 	for {
 
+		currentTime := time.Now()
+
 		encodedQuery := &url.URL{Path: app.queryExpression}
 
 		res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
 
-		currentTime := time.Now()
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
 		} else {

@@ -95,9 +95,10 @@ type Secret struct {
 }
 
 type JWT struct {
-	AuthURL string
-	Timeout string
-	Buffer  string
+	RequestHeaders map[string]string
+	AuthURL        string
+	Timeout        time.Duration
+	Buffer         time.Duration
 }
 
 type PrometheusConfig struct {
@@ -107,7 +108,7 @@ type PrometheusConfig struct {
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.FixedValueAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
+func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
 
 	return func(target *vegeta.Target) (err error) {
 
@@ -172,10 +173,18 @@ func main() {
 	)
 
 	config := new(Config)
-	v.Unmarshal(config)
+	err = v.Unmarshal(config)
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to unmarshal config", logging.ErrorKey(), err.Error())
+	}
+
+	logging.Info(logger).Log(logging.MessageKey(), "vegeta frequency")
+	logging.Info(logger).Log(logging.MessageKey(), config.VegetaConfig.Frequency)
 
 	// use constant secret for hash
 	secretGetter := secretGetter.NewConstantSecret(config.Webhook.Request.WebhookConfig.Secret)
+	logging.Info(logger).Log(logging.MessageKey(), "secret getter")
+	logging.Info(logger).Log(logging.MessageKey(), secretGetter)
 
 	// set up the middleware
 	htf, err := hashTokenFactory.New("Sha1", sha1.New, secretGetter)
@@ -204,17 +213,30 @@ func main() {
 		},
 	}
 
-	acquirer, err := acquire.NewFixedAuthAcquirer(config.Webhook.Basic)
+	acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
+		AuthURL:        config.Webhook.JWT.AuthURL,
+		Timeout:        config.Webhook.JWT.Timeout,
+		Buffer:         config.Webhook.JWT.Buffer,
+		RequestHeaders: config.Webhook.JWT.RequestHeaders,
+	}
+
+	acquirer, err := acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
+
+	// acquirer, err = acquire.NewFixedAuthAcquirer(config.Webhook.Basic)
 	if err != nil {
-		logging.Error(logger).Log(logging.MessageKey(), "failed to create basic auth plain text acquirer:", logging.ErrorKey(), err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
 
 	registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
 	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), acquirer, logging.ErrorKey(), err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), secretGetter, logging.ErrorKey(), err.Error())
+		logging.Error(logger).Log(logging.MessageKey(), basicConfig, logging.ErrorKey(), err.Error())
 		logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
+
 	periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, 4*time.Minute, logger)
 
 	// start the registerer
@@ -252,6 +274,7 @@ func main() {
 	waitGroup, shutdown, err := concurrent.Execute(runnable)
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to execute additional process", logging.ErrorKey(), err.Error())
+		os.Exit(1)
 	}
 
 	// send events to Caduceus using vegeta
@@ -269,6 +292,7 @@ func main() {
 
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
+		os.Exit(1)
 	}
 
 	signals := make(chan os.Signal, 10)
@@ -289,6 +313,7 @@ func main() {
 	}
 
 	metrics.Close()
+	periodicRegisterer.Stop()
 	close(shutdown)
 	waitGroup.Wait()
 	logging.Info(logger).Log(logging.MessageKey(), "Caduceator has shut down")
