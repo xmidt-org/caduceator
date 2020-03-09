@@ -172,6 +172,10 @@ func main() {
 		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
 	)
 
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to initialize", logging.ErrorKey(), err.Error())
+	}
+
 	config := new(Config)
 	err = v.Unmarshal(config)
 	if err != nil {
