@@ -276,7 +276,11 @@ webhook:
   # Authorization Basic {basic}
   #
   # (Optional)
+<<<<<<< HEAD
   basic: ""
+=======
+  basic: "Basic dXNlcjpwYXNz"
+>>>>>>> 340cccc46812d9566d6d4dadf6582e333eee94a0
 
   # jwt provides a way to use Bearer Authorization when registering to a 
   # webhook.  If the below values are all provided, a request is made to the 
@@ -301,4 +305,8 @@ webhook:
 
     # buffer is the length of time before a token expires to get a new token.
     # (Optional)
+<<<<<<< HEAD
     buffer: "1m"
+=======
+    buffer: "5s"
+>>>>>>> 340cccc46812d9566d6d4dadf6582e333eee94a0
