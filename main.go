@@ -108,6 +108,10 @@ type PrometheusConfig struct {
 	MetricsURL      string
 }
 
+func vegetaStart() {
+
+}
+
 // Start function is used to send events to Caduceus
 func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
 
