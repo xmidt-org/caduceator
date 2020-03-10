@@ -48,6 +48,7 @@ type App struct {
 	queryURL        string
 	queryExpression string
 	metricsURL      string
+	sleepTime       time.Duration
 }
 
 const (
@@ -88,6 +89,7 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	time.Sleep(app.sleepTime)
 	writer.WriteHeader(http.StatusAccepted)
 }
 

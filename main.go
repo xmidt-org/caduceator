@@ -66,6 +66,7 @@ type VegetaConfig struct {
 	Duration    time.Duration
 	MaxRoutines int
 	PostURL     string
+	SleepTime   time.Duration
 }
 
 type Request struct {
@@ -81,8 +82,8 @@ type WebhookConfig struct {
 }
 
 type Webhook struct {
-	RegistrationInterval string
-	Timeout              int
+	RegistrationInterval time.Duration
+	Timeout              time.Duration
 	RegistrationURL      string
 	Request              Request
 	Basic                string
@@ -153,12 +154,12 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 		req.Header.Add("Authorization", authValue)
 
 		resp, err := http.DefaultClient.Do(req)
+		resp.Body.Close()
 
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request", logging.ErrorKey(), err.Error())
 			return err
 		}
-		resp.Body.Close()
 
 		return err
 	}
@@ -187,8 +188,6 @@ func main() {
 
 	// use constant secret for hash
 	secretGetter := secretGetter.NewConstantSecret(config.Webhook.Request.WebhookConfig.Secret)
-	logging.Info(logger).Log(logging.MessageKey(), "secret getter")
-	logging.Info(logger).Log(logging.MessageKey(), secretGetter)
 
 	// set up the middleware
 	htf, err := hashTokenFactory.New("Sha1", sha1.New, secretGetter)
@@ -206,7 +205,7 @@ func main() {
 
 	// set up the registerer
 	basicConfig := webhookClient.BasicConfig{
-		Timeout:         5 * time.Second,
+		Timeout:         config.Webhook.Timeout,
 		RegistrationURL: config.Webhook.RegistrationURL,
 		Request: webhook.W{
 			Config: webhook.Config{
@@ -234,14 +233,11 @@ func main() {
 
 	registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
 	if err != nil {
-		logging.Error(logger).Log(logging.MessageKey(), acquirer, logging.ErrorKey(), err.Error())
-		logging.Error(logger).Log(logging.MessageKey(), secretGetter, logging.ErrorKey(), err.Error())
-		logging.Error(logger).Log(logging.MessageKey(), basicConfig, logging.ErrorKey(), err.Error())
 		logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
 		os.Exit(1)
 	}
 
-	periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, 4*time.Minute, logger)
+	periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
 
 	// start the registerer
 	periodicRegisterer.Start()
@@ -264,6 +260,7 @@ func main() {
 		queryURL:        config.PrometheusConfig.QueryURL,
 		queryExpression: config.PrometheusConfig.QueryExpression,
 		metricsURL:      config.PrometheusConfig.MetricsURL,
+		sleepTime:       config.VegetaConfig.SleepTime,
 	}
 
 	// start listening
