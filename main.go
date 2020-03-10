@@ -108,8 +108,21 @@ type PrometheusConfig struct {
 	MetricsURL      string
 }
 
-func vegetaStart() {
+func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
+	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
+	duration := config.VegetaConfig.Duration * time.Minute
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
+		metrics.Add(res)
+	}
 
+	metricsReporter := vegeta.NewTextReporter(&metrics)
+
+	err := metricsReporter.Report(os.Stdout)
+
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
+		os.Exit(1)
+	}
 }
 
 // Start function is used to send events to Caduceus
@@ -284,21 +297,21 @@ func main() {
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
-	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
-	duration := config.VegetaConfig.Duration * time.Minute
+	go vegetaStarter(metrics, config, attacker, acquirer, logger)
+	// rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
+	// duration := config.VegetaConfig.Duration * time.Minute
+	// for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
+	// 	metrics.Add(res)
+	// }
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
-		metrics.Add(res)
-	}
+	// metricsReporter := vegeta.NewTextReporter(&metrics)
 
-	metricsReporter := vegeta.NewTextReporter(&metrics)
+	// err = metricsReporter.Report(os.Stdout)
 
-	err = metricsReporter.Report(os.Stdout)
-
-	if err != nil {
-		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
-		os.Exit(1)
-	}
+	// if err != nil {
+	// 	logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
+	// 	os.Exit(1)
+	// }
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
