@@ -162,8 +162,11 @@ vegetaConfig:
 
   postURL: "http://caduceus:6000/api/v3/notify"
 
+<<<<<<< HEAD
   sleepTime: "3s"
 
+=======
+>>>>>>> ce5e562f42af8cb790d8e0fe5b932aa1cfcbf7fc
 ########################################
 #   Prometheus Related Configuration
 ########################################
