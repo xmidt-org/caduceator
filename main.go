@@ -108,7 +108,7 @@ type PrometheusConfig struct {
 	MetricsURL      string
 }
 
-func vegetaStarter() {
+func vegetaStart() {
 
 }
 
