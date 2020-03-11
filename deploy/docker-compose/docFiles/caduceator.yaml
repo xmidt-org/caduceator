@@ -162,6 +162,8 @@ vegetaConfig:
 
   postURL: "http://caduceus:6000/api/v3/notify"
 
+  sleepTime: "3s"
+
 ########################################
 #   Prometheus Related Configuration
 ########################################
@@ -214,11 +216,11 @@ webhook:
   # registrationInterval provides the time to wait between each registration to 
   # the webhook.  If this is set to 0, no registration is done.
   # (Optional)
-  registrationInterval: ""
+  registrationInterval: "4m"
 
   # timeout provides the length of time the request should wait before timing 
-  # out (in seconds) 
-  timeout: 5
+  # out  
+  timeout: "1m"
 
   # registrationURL provides the place to register the webhook.
   registrationURL: "http://caduceus:6000/hook"

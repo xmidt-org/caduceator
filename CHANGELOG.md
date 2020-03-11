@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.1.2]
+- bug fixes
+
 ## [v0.1.1]
 - Inital relase
 - Removed integration tests and fixed travis [#2](https://github.com/xmidt-org/caduceator/pull/2)
