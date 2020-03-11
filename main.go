@@ -152,13 +152,13 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 
 		if err := encoder.Encode(&message); err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
-			return err
 		}
 
 		req, err := http.NewRequest("POST", requestURL, &buffer)
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
 			return err
+
 		}
 		req.Header.Add("Content-type", "application/msgpack")
 
@@ -166,17 +166,18 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to acquire", logging.ErrorKey(), err.Error())
 			return err
+
 		}
 
 		req.Header.Add("Authorization", authValue)
 
 		resp, err := http.DefaultClient.Do(req)
-		resp.Body.Close()
 
 		if err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request", logging.ErrorKey(), err.Error())
+			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
 			return err
 		}
+		defer resp.Body.Close()
 
 		return err
 	}
