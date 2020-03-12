@@ -49,6 +49,8 @@ type App struct {
 	queryExpression string
 	metricsURL      string
 	sleepTime       time.Duration
+	sleepTimeAfter  time.Duration
+	prometheusAuth  string
 }
 
 const (
@@ -80,7 +82,11 @@ func (m *Measures) TrackTime(length time.Duration) {
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "caduceaus started receiving events")
+	// logging.Info(app.logger).Log(logging.MessageKey(), "caduceaus started receiving events")
+
+	time.Sleep(app.sleepTime)
+	writer.WriteHeader(http.StatusAccepted)
+	time.Sleep(app.sleepTimeAfter)
 
 	_, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -89,8 +95,6 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	time.Sleep(app.sleepTime)
-	writer.WriteHeader(http.StatusAccepted)
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {

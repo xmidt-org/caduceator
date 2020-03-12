@@ -50,7 +50,22 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
 
-	// make requests to get caduceus queue depth metrics
+	// // make requests to get caduceus queue depth metrics
+	// encodedQuery := &url.URL{Path: app.queryExpression}
+	// req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
+	// if err != nil {
+	// 	logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
+	// }
+
+	// req.Header.Add("Authorization", app.prometheusAuth)
+
+	// resp, err := http.DefaultClient.Do(req)
+	// if err != nil {
+	// 	logging.Error(app.logger).Log(logging.MessageKey(), "failed while making HTTP request for prometheus auth ", logging.ErrorKey(), err.Error())
+	// 	return err
+	// }
+	// resp.Body.Close()
+
 Loop:
 	for {
 

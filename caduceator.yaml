@@ -162,6 +162,8 @@ vegetaConfig:
 
   postURL: "http://caduceus:6000/api/v3/notify"
 
+  clientTimeout: "5s"
+
 ########################################
 #   Prometheus Related Configuration
 ########################################
@@ -180,6 +182,9 @@ prometheusConfig:
   # metricsURL is used to confirm the values from metrics that are received 
   # is from the endpoint in which events are sent to
   metricsURL: "http://caduceator:5000/events"
+
+  secret: ""
+
 
 ########################################
 #   Authorization Related Configuration

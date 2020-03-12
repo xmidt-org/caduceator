@@ -61,12 +61,14 @@ type Config struct {
 }
 
 type VegetaConfig struct {
-	Frequency   int
-	Connections int
-	Duration    time.Duration
-	MaxRoutines int
-	PostURL     string
-	SleepTime   time.Duration
+	Frequency      int
+	Connections    int
+	Duration       time.Duration
+	MaxRoutines    int
+	PostURL        string
+	SleepTime      time.Duration
+	ClientTimeout  time.Duration
+	SleepTimeAfter time.Duration
 }
 
 type Request struct {
@@ -106,12 +108,14 @@ type PrometheusConfig struct {
 	QueryURL        string
 	QueryExpression string
 	MetricsURL      string
+	Auth            string
 }
 
 func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
 	duration := config.VegetaConfig.Duration * time.Minute
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
+
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -126,8 +130,11 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
-
+//func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
+func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string, timeout time.Duration) vegeta.Targeter {
+	var client = &http.Client{
+		Timeout: timeout,
+	}
 	return func(target *vegeta.Target) (err error) {
 
 		message := wrp.Message{
@@ -171,13 +178,15 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 
 		req.Header.Add("Authorization", authValue)
 
-		resp, err := http.DefaultClient.Do(req)
+		//resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
 			return err
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
+		// defer resp.Body.Close()
 
 		return err
 	}
@@ -279,6 +288,8 @@ func main() {
 		queryExpression: config.PrometheusConfig.QueryExpression,
 		metricsURL:      config.PrometheusConfig.MetricsURL,
 		sleepTime:       config.VegetaConfig.SleepTime,
+		sleepTimeAfter:  config.VegetaConfig.SleepTimeAfter,
+		prometheusAuth:  config.PrometheusConfig.Auth,
 	}
 
 	// start listening
@@ -301,7 +312,7 @@ func main() {
 	go vegetaStarter(metrics, config, attacker, acquirer, logger)
 	// rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
 	// duration := config.VegetaConfig.Duration * time.Minute
-	// for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
+	// for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout), rate, duration, "Big Bang!") {
 	// 	metrics.Add(res)
 	// }
 
