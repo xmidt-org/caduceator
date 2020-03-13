@@ -65,7 +65,7 @@ func Metrics() []xmetrics.Metric {
 			Type:      "histogram",
 			Namespace: "xmidt",
 			Subsystem: "caduceator",
-			Buckets:   []float64{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.5, 0.7, 1, 1.5, 2},
+			Buckets:   []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 		},
 	}
 }
@@ -101,7 +101,7 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	cutoffTime := time.Now()
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "caduceus queue is full")
+	logging.Info(app.logger).Log(logging.MessageKey(), "time caduceus queue is full: "+cutoffTime.String())
 
 	app.mutex.Lock()
 

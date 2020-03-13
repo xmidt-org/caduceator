@@ -50,7 +50,8 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
 
-	// // make requests to get caduceus queue depth metrics
+	// make requests to get caduceus queue depth metrics
+
 	// encodedQuery := &url.URL{Path: app.queryExpression}
 	// req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
 	// if err != nil {
@@ -66,17 +67,40 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 	// }
 	// resp.Body.Close()
 
+	// req, err := http.NewRequest("GET", "http://example.com", nil)
+	// req.Header.Add("If-None-Match", `W/"wyzzy"`)
+	// resp, err := client.Do(req)
+
+	encodedQuery := &url.URL{Path: app.queryExpression}
+
+	// res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
+	req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
+	if err != nil {
+		logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
+	}
+
+	req.Header.Add("Authorization", app.prometheusAuth)
+
 Loop:
 	for {
 
 		currentTime := time.Now()
 
-		encodedQuery := &url.URL{Path: app.queryExpression}
+		// encodedQuery := &url.URL{Path: app.queryExpression}
 
-		res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
+		// // res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
+		// req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
+		// if err != nil {
+		// 	logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
+		// }
+
+		// req.Header.Add("Authorization", app.prometheusAuth)
+
+		res, err := http.DefaultClient.Do(req)
 
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
+			return
 		} else {
 			defer res.Body.Close()
 
@@ -97,7 +121,9 @@ Loop:
 						//putting calculated duration into histogram metric
 						app.measures.TimeInMemory.Observe(currentTime.Sub(cutoffTime).Seconds())
 
-						logging.Info(app.logger).Log(logging.MessageKey(), "sent hsitogram metric to prometheus: "+currentTime.Sub(cutoffTime).String())
+						logging.Info(app.logger).Log(logging.MessageKey(), "time queue is 0: "+currentTime.String())
+
+						logging.Info(app.logger).Log(logging.MessageKey(), "sent histogram metric to prometheus: "+currentTime.Sub(cutoffTime).String())
 						break Loop
 					}
 				}
