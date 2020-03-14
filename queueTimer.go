@@ -50,30 +50,8 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
 
-	// make requests to get caduceus queue depth metrics
-
-	// encodedQuery := &url.URL{Path: app.queryExpression}
-	// req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
-	// if err != nil {
-	// 	logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
-	// }
-
-	// req.Header.Add("Authorization", app.prometheusAuth)
-
-	// resp, err := http.DefaultClient.Do(req)
-	// if err != nil {
-	// 	logging.Error(app.logger).Log(logging.MessageKey(), "failed while making HTTP request for prometheus auth ", logging.ErrorKey(), err.Error())
-	// 	return err
-	// }
-	// resp.Body.Close()
-
-	// req, err := http.NewRequest("GET", "http://example.com", nil)
-	// req.Header.Add("If-None-Match", `W/"wyzzy"`)
-	// resp, err := client.Do(req)
-
 	encodedQuery := &url.URL{Path: app.queryExpression}
 
-	// res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
 	req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
@@ -85,16 +63,6 @@ Loop:
 	for {
 
 		currentTime := time.Now()
-
-		// encodedQuery := &url.URL{Path: app.queryExpression}
-
-		// // res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
-		// req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
-		// if err != nil {
-		// 	logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
-		// }
-
-		// req.Header.Add("Authorization", app.prometheusAuth)
 
 		res, err := http.DefaultClient.Do(req)
 
@@ -115,10 +83,10 @@ Loop:
 			if content.Data.ResultType == "vector" {
 				for _, results := range content.Data.Result {
 
-					//only calculating duration once queue size reaches 0
+					// only calculating duration once queue size reaches 0
 					if results.Metric.Url == app.metricsURL && results.Value[1] == "0" {
 
-						//putting calculated duration into histogram metric
+						// putting calculated duration into histogram metric
 						app.measures.TimeInMemory.Observe(currentTime.Sub(cutoffTime).Seconds())
 
 						logging.Info(app.logger).Log(logging.MessageKey(), "time queue is 0: "+currentTime.String())

@@ -82,8 +82,6 @@ func (m *Measures) TrackTime(length time.Duration) {
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
-	// logging.Info(app.logger).Log(logging.MessageKey(), "caduceaus started receiving events")
-
 	time.Sleep(app.sleepTime)
 	writer.WriteHeader(http.StatusAccepted)
 	time.Sleep(app.sleepTimeAfter)
@@ -103,20 +101,20 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "time caduceus queue is full: "+cutoffTime.String())
 
+	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
+	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
+
 	app.mutex.Lock()
 
-	if app.counter < app.maxRoutines {
+	if app.counter <= app.maxRoutines {
+		if app.counter == app.maxRoutines {
+			app.attacker.Stop()
+		}
 		app.counter++
 		go app.calculateDuration(cutoffTime)
 		app.mutex.Unlock()
 
-	} else if app.counter == app.maxRoutines {
-		app.mutex.Unlock()
-		app.attacker.Stop()
 	}
-
-	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
-	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
 
 	return
 }

@@ -130,7 +130,6 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-//func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
 func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string, timeout time.Duration) vegeta.Targeter {
 	var client = &http.Client{
 		Timeout: timeout,
@@ -178,7 +177,6 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 
 		req.Header.Add("Authorization", authValue)
 
-		//resp, err := http.DefaultClient.Do(req)
 		resp, err := client.Do(req)
 
 		if err != nil {
@@ -186,7 +184,6 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 			return err
 		}
 		resp.Body.Close()
-		// defer resp.Body.Close()
 
 		return err
 	}
@@ -252,7 +249,6 @@ func main() {
 
 	acquirer, err := acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
 
-	// acquirer, err = acquire.NewFixedAuthAcquirer(config.Webhook.Basic)
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
@@ -281,7 +277,7 @@ func main() {
 		measures:        measures,
 		attacker:        attacker,
 		maxRoutines:     config.VegetaConfig.MaxRoutines,
-		counter:         0,
+		counter:         1,
 		durations:       durations,
 		mutex:           &sync.Mutex{},
 		queryURL:        config.PrometheusConfig.QueryURL,
@@ -310,20 +306,6 @@ func main() {
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
 	go vegetaStarter(metrics, config, attacker, acquirer, logger)
-	// rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
-	// duration := config.VegetaConfig.Duration * time.Minute
-	// for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout), rate, duration, "Big Bang!") {
-	// 	metrics.Add(res)
-	// }
-
-	// metricsReporter := vegeta.NewTextReporter(&metrics)
-
-	// err = metricsReporter.Report(os.Stdout)
-
-	// if err != nil {
-	// 	logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
-	// 	os.Exit(1)
-	// }
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
