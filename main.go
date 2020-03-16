@@ -183,7 +183,7 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
 			return err
 		}
-		resp.Body.Close()
+		defer resp.Body.Close()
 
 		return err
 	}
