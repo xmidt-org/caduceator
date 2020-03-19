@@ -249,7 +249,6 @@ func main() {
 	}
 
 	acquirer, err := acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
-
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
