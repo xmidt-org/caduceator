@@ -70,9 +70,6 @@ Loop:
 		currentTime := time.Now()
 
 		res, err := client.Do(req)
-		// res, err := http.DefaultClient.Do(req)
-
-		// logging.Info(app.logger).Log(logging.MessageKey(), "quering prometheus")
 
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
