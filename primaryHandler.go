@@ -38,19 +38,20 @@ type Measures struct {
 
 // App used for logging and saving durations
 type App struct {
-	logger          log.Logger
-	durations       chan time.Duration
-	measures        *Measures
-	attacker        *vegeta.Attacker
-	counter         int
-	maxRoutines     int
-	mutex           *sync.Mutex
-	queryURL        string
-	queryExpression string
-	metricsURL      string
-	sleepTime       time.Duration
-	sleepTimeAfter  time.Duration
-	prometheusAuth  string
+	logger            log.Logger
+	durations         chan time.Duration
+	measures          *Measures
+	attacker          *vegeta.Attacker
+	counter           int
+	maxRoutines       int
+	mutex             *sync.Mutex
+	queryURL          string
+	queryExpression   string
+	metricsURL        string
+	sleepTime         time.Duration
+	sleepTimeAfter    time.Duration
+	prometheusAuth    string
+	timeoutPrometheus time.Duration
 }
 
 const (

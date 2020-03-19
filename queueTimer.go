@@ -50,6 +50,10 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
 
+	var client = &http.Client{
+		Timeout: app.timeoutPrometheus,
+	}
+
 	encodedQuery := &url.URL{Path: app.queryExpression}
 
 	req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
@@ -58,13 +62,17 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 	}
 
 	req.Header.Add("Authorization", app.prometheusAuth)
+	logging.Info(app.logger).Log(logging.MessageKey(), "added authorization")
 
 Loop:
 	for {
 
 		currentTime := time.Now()
 
-		res, err := http.DefaultClient.Do(req)
+		res, err := client.Do(req)
+		// res, err := http.DefaultClient.Do(req)
+
+		// logging.Info(app.logger).Log(logging.MessageKey(), "quering prometheus")
 
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())

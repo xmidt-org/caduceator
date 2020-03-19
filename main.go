@@ -109,6 +109,7 @@ type PrometheusConfig struct {
 	QueryExpression string
 	MetricsURL      string
 	Auth            string
+	Timeout         time.Duration
 }
 
 func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
@@ -274,18 +275,19 @@ func main() {
 	durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
 
 	app := &App{logger: logger,
-		measures:        measures,
-		attacker:        attacker,
-		maxRoutines:     config.VegetaConfig.MaxRoutines,
-		counter:         1,
-		durations:       durations,
-		mutex:           &sync.Mutex{},
-		queryURL:        config.PrometheusConfig.QueryURL,
-		queryExpression: config.PrometheusConfig.QueryExpression,
-		metricsURL:      config.PrometheusConfig.MetricsURL,
-		sleepTime:       config.VegetaConfig.SleepTime,
-		sleepTimeAfter:  config.VegetaConfig.SleepTimeAfter,
-		prometheusAuth:  config.PrometheusConfig.Auth,
+		measures:          measures,
+		attacker:          attacker,
+		maxRoutines:       config.VegetaConfig.MaxRoutines,
+		counter:           1,
+		durations:         durations,
+		mutex:             &sync.Mutex{},
+		queryURL:          config.PrometheusConfig.QueryURL,
+		queryExpression:   config.PrometheusConfig.QueryExpression,
+		metricsURL:        config.PrometheusConfig.MetricsURL,
+		sleepTime:         config.VegetaConfig.SleepTime,
+		sleepTimeAfter:    config.VegetaConfig.SleepTimeAfter,
+		prometheusAuth:    config.PrometheusConfig.Auth,
+		timeoutPrometheus: config.PrometheusConfig.Timeout,
 	}
 
 	// start listening
