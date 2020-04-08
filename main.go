@@ -69,6 +69,7 @@ type VegetaConfig struct {
 	SleepTime      time.Duration
 	ClientTimeout  time.Duration
 	SleepTimeAfter time.Duration
+	WrpMessageDest string
 }
 
 type Request struct {
@@ -116,7 +117,7 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
 	duration := config.VegetaConfig.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.WrpMessageDest), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -131,7 +132,7 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string, timeout time.Duration) vegeta.Targeter {
+func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string, timeout time.Duration, destination string) vegeta.Targeter {
 	var client = &http.Client{
 		Timeout: timeout,
 	}
@@ -140,7 +141,7 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 		message := wrp.Message{
 			Type:            4,
 			Source:          "dns:talaria",
-			Destination:     "event:device-status/mac:112233445566/offline",
+			Destination:     destination,
 			TransactionUUID: "abcd",
 			ContentType:     "json",
 			Metadata: map[string]string{
@@ -271,7 +272,8 @@ func main() {
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(config.VegetaConfig.Connections))
 
-	durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
+	// durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
+	durations := make(chan time.Duration)
 
 	app := &App{logger: logger,
 		measures:          measures,

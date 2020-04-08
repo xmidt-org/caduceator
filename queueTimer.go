@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/xmidt-org/webpa-common/logging"
@@ -89,7 +90,8 @@ Loop:
 				for _, results := range content.Data.Result {
 
 					// only calculating duration once queue size reaches 0
-					if results.Metric.Url == app.metricsURL && results.Value[1] == "0" {
+					val, _ := strconv.Atoi(results.Value[1].(string))
+					if results.Metric.Url == app.metricsURL && val <= 500 {
 
 						// putting calculated duration into histogram metric
 						app.measures.TimeInMemory.Observe(currentTime.Sub(cutoffTime).Seconds())

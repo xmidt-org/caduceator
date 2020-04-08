@@ -158,11 +158,14 @@ vegetaConfig:
   duration: 0
 
   # maxRoutines is the number of times we want caduceus to be cutoff
+  # maxRoutines of 0 means that we will get infinite cutoffs
   maxRoutines: 2
 
   postURL: "http://caduceus:6000/api/v3/notify"
 
   clientTimeout: "5s"
+
+  wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
 ########################################
 #   Prometheus Related Configuration

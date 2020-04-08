@@ -107,14 +107,17 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	app.mutex.Lock()
 
-	if app.counter <= app.maxRoutines {
+	if app.maxRoutines == 0 {
+		app.counter++
+		go app.calculateDuration(cutoffTime)
+		app.mutex.Unlock()
+	} else if app.counter <= app.maxRoutines {
 		if app.counter == app.maxRoutines {
 			app.attacker.Stop()
 		}
 		app.counter++
 		go app.calculateDuration(cutoffTime)
 		app.mutex.Unlock()
-
 	}
 
 	return
