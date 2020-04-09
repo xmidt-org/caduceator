@@ -84,8 +84,6 @@ func (m *Measures) TrackTime(length time.Duration) {
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
 	time.Sleep(app.sleepTime)
-	writer.WriteHeader(http.StatusAccepted)
-	time.Sleep(app.sleepTimeAfter)
 
 	_, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -94,6 +92,7 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	writer.WriteHeader(http.StatusAccepted)
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
