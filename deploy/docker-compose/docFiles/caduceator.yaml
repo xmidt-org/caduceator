@@ -173,6 +173,7 @@ vegetaConfig:
   # destination of where to send wrpMessage
   wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
+
 ########################################
 #   Prometheus Related Configuration
 ########################################
@@ -197,6 +198,8 @@ prometheusConfig:
 
   # timeout for attempt to login
   timeout: 
+
+
 
 
 ########################################

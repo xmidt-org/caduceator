@@ -198,6 +198,9 @@ prometheusConfig:
   # timeout for attempt to login
   timeout: 
 
+  secret: ""
+
+
 
 ########################################
 #   Authorization Related Configuration
