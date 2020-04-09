@@ -38,17 +38,20 @@ type Measures struct {
 
 // App used for logging and saving durations
 type App struct {
-	logger          log.Logger
-	durations       chan time.Duration
-	measures        *Measures
-	attacker        *vegeta.Attacker
-	counter         int
-	maxRoutines     int
-	mutex           *sync.Mutex
-	queryURL        string
-	queryExpression string
-	metricsURL      string
-	sleepTime       time.Duration
+	logger            log.Logger
+	durations         chan time.Duration
+	measures          *Measures
+	attacker          *vegeta.Attacker
+	counter           int
+	maxRoutines       int
+	mutex             *sync.Mutex
+	queryURL          string
+	queryExpression   string
+	metricsURL        string
+	sleepTime         time.Duration
+	sleepTimeAfter    time.Duration
+	prometheusAuth    string
+	timeoutPrometheus time.Duration
 }
 
 const (
@@ -63,7 +66,7 @@ func Metrics() []xmetrics.Metric {
 			Type:      "histogram",
 			Namespace: "xmidt",
 			Subsystem: "caduceator",
-			Buckets:   []float64{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.5, 0.7, 1, 1.5, 2},
+			Buckets:   []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
 		},
 	}
 }
@@ -80,7 +83,7 @@ func (m *Measures) TrackTime(length time.Duration) {
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "caduceaus started receiving events")
+	time.Sleep(app.sleepTime)
 
 	_, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -89,7 +92,6 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	time.Sleep(app.sleepTime)
 	writer.WriteHeader(http.StatusAccepted)
 }
 
@@ -97,22 +99,25 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 
 	cutoffTime := time.Now()
 
-	logging.Info(app.logger).Log(logging.MessageKey(), "caduceus queue is full")
-
-	app.mutex.Lock()
-
-	if app.counter < app.maxRoutines {
-		app.counter++
-		go app.calculateDuration(cutoffTime)
-		app.mutex.Unlock()
-
-	} else if app.counter == app.maxRoutines {
-		app.mutex.Unlock()
-		app.attacker.Stop()
-	}
+	logging.Info(app.logger).Log(logging.MessageKey(), "time caduceus queue is full: "+cutoffTime.String())
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
 	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
+
+	app.mutex.Lock()
+
+	if app.maxRoutines == 0 {
+		app.counter++
+		go app.calculateDuration(cutoffTime)
+		app.mutex.Unlock()
+	} else if app.counter <= app.maxRoutines {
+		if app.counter == app.maxRoutines {
+			app.attacker.Stop()
+		}
+		app.counter++
+		go app.calculateDuration(cutoffTime)
+		app.mutex.Unlock()
+	}
 
 	return
 }

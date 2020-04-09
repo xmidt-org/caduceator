@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/xmidt-org/webpa-common/logging"
@@ -50,18 +51,30 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
 
-	// make requests to get caduceus queue depth metrics
+	var client = &http.Client{
+		Timeout: app.timeoutPrometheus,
+	}
+
+	encodedQuery := &url.URL{Path: app.queryExpression}
+
+	req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
+	if err != nil {
+		logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
+	}
+
+	req.Header.Add("Authorization", app.prometheusAuth)
+	logging.Info(app.logger).Log(logging.MessageKey(), "added authorization")
+
 Loop:
 	for {
 
 		currentTime := time.Now()
 
-		encodedQuery := &url.URL{Path: app.queryExpression}
-
-		res, err := http.Get(app.queryURL + "?query=" + encodedQuery.String())
+		res, err := client.Do(req)
 
 		if err != nil {
 			logging.Error(app.logger).Log(logging.MessageKey(), "failed to query prometheus", logging.ErrorKey(), err.Error())
+			return
 		} else {
 			defer res.Body.Close()
 
@@ -76,13 +89,16 @@ Loop:
 			if content.Data.ResultType == "vector" {
 				for _, results := range content.Data.Result {
 
-					//only calculating duration once queue size reaches 0
-					if results.Metric.Url == app.metricsURL && results.Value[1] == "0" {
+					// only calculating duration once queue size reaches 0
+					val, _ := strconv.Atoi(results.Value[1].(string))
+					if results.Metric.Url == app.metricsURL && val <= 500 {
 
-						//putting calculated duration into histogram metric
+						// putting calculated duration into histogram metric
 						app.measures.TimeInMemory.Observe(currentTime.Sub(cutoffTime).Seconds())
 
-						logging.Info(app.logger).Log(logging.MessageKey(), "sent hsitogram metric to prometheus: "+currentTime.Sub(cutoffTime).String())
+						logging.Info(app.logger).Log(logging.MessageKey(), "time queue is 0: "+currentTime.String())
+
+						logging.Info(app.logger).Log(logging.MessageKey(), "sent histogram metric to prometheus: "+currentTime.Sub(cutoffTime).String())
 						break Loop
 					}
 				}

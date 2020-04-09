@@ -61,12 +61,15 @@ type Config struct {
 }
 
 type VegetaConfig struct {
-	Frequency   int
-	Connections int
-	Duration    time.Duration
-	MaxRoutines int
-	PostURL     string
-	SleepTime   time.Duration
+	Frequency      int
+	Connections    int
+	Duration       time.Duration
+	MaxRoutines    int
+	PostURL        string
+	SleepTime      time.Duration
+	ClientTimeout  time.Duration
+	SleepTimeAfter time.Duration
+	WrpMessageDest string
 }
 
 type Request struct {
@@ -106,12 +109,15 @@ type PrometheusConfig struct {
 	QueryURL        string
 	QueryExpression string
 	MetricsURL      string
+	Auth            string
+	Timeout         time.Duration
 }
 
 func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
 	duration := config.VegetaConfig.Duration * time.Minute
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
+
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.WrpMessageDest), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -126,14 +132,16 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string) vegeta.Targeter {
-
+func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string, timeout time.Duration, destination string) vegeta.Targeter {
+	var client = &http.Client{
+		Timeout: timeout,
+	}
 	return func(target *vegeta.Target) (err error) {
 
 		message := wrp.Message{
 			Type:            4,
 			Source:          "dns:talaria",
-			Destination:     "event:device-status/mac:112233445566/offline",
+			Destination:     destination,
 			TransactionUUID: "abcd",
 			ContentType:     "json",
 			Metadata: map[string]string{
@@ -171,7 +179,7 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 
 		req.Header.Add("Authorization", authValue)
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
@@ -242,8 +250,6 @@ func main() {
 	}
 
 	acquirer, err := acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
-
-	// acquirer, err = acquire.NewFixedAuthAcquirer(config.Webhook.Basic)
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
 		os.Exit(1)
@@ -266,19 +272,23 @@ func main() {
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(config.VegetaConfig.Connections))
 
-	durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
+	// durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
+	durations := make(chan time.Duration)
 
 	app := &App{logger: logger,
-		measures:        measures,
-		attacker:        attacker,
-		maxRoutines:     config.VegetaConfig.MaxRoutines,
-		counter:         0,
-		durations:       durations,
-		mutex:           &sync.Mutex{},
-		queryURL:        config.PrometheusConfig.QueryURL,
-		queryExpression: config.PrometheusConfig.QueryExpression,
-		metricsURL:      config.PrometheusConfig.MetricsURL,
-		sleepTime:       config.VegetaConfig.SleepTime,
+		measures:          measures,
+		attacker:          attacker,
+		maxRoutines:       config.VegetaConfig.MaxRoutines,
+		counter:           1,
+		durations:         durations,
+		mutex:             &sync.Mutex{},
+		queryURL:          config.PrometheusConfig.QueryURL,
+		queryExpression:   config.PrometheusConfig.QueryExpression,
+		metricsURL:        config.PrometheusConfig.MetricsURL,
+		sleepTime:         config.VegetaConfig.SleepTime,
+		sleepTimeAfter:    config.VegetaConfig.SleepTimeAfter,
+		prometheusAuth:    config.PrometheusConfig.Auth,
+		timeoutPrometheus: config.PrometheusConfig.Timeout,
 	}
 
 	// start listening
@@ -299,20 +309,6 @@ func main() {
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
 	go vegetaStarter(metrics, config, attacker, acquirer, logger)
-	// rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
-	// duration := config.VegetaConfig.Duration * time.Minute
-	// for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL), rate, duration, "Big Bang!") {
-	// 	metrics.Add(res)
-	// }
-
-	// metricsReporter := vegeta.NewTextReporter(&metrics)
-
-	// err = metricsReporter.Report(os.Stdout)
-
-	// if err != nil {
-	// 	logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
-	// 	os.Exit(1)
-	// }
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)

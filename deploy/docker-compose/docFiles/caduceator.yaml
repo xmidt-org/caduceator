@@ -162,6 +162,8 @@ vegetaConfig:
 
   postURL: "http://caduceus:6000/api/v3/notify"
 
+  clientTimeout: "5s"
+  
   sleepTime: "3s"
 
 ########################################
@@ -182,6 +184,9 @@ prometheusConfig:
   # metricsURL is used to confirm the values from metrics that are received 
   # is from the endpoint in which events are sent to
   metricsURL: "http://caduceator:5000/events"
+
+  secret: ""
+
 
 ########################################
 #   Authorization Related Configuration
@@ -278,7 +283,7 @@ webhook:
   # Authorization Basic {basic}
   #
   # (Optional)
-  basic: "Basic dXNlcjpwYXNz"
+  basic: ""
 
   # jwt provides a way to use Bearer Authorization when registering to a 
   # webhook.  If the below values are all provided, a request is made to the 
@@ -303,4 +308,4 @@ webhook:
 
     # buffer is the length of time before a token expires to get a new token.
     # (Optional)
-    buffer: "5s"
+    buffer: "1m"
