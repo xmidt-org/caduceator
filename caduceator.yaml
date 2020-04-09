@@ -161,10 +161,16 @@ vegetaConfig:
   # maxRoutines of 0 means that we will get infinite cutoffs
   maxRoutines: 2
 
+  # url to send events to
   postURL: "http://caduceus:6000/api/v3/notify"
 
+  # duration to sleep before sending status
+  sleepTime: "45s"
+
+  # client timeout in seconds
   clientTimeout: "5s"
 
+  # destination of where to send wrpMessage
   wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
 ########################################
@@ -186,7 +192,14 @@ prometheusConfig:
   # is from the endpoint in which events are sent to
   metricsURL: "http://caduceator:5000/events"
 
+  # authorization for prometheus server
+  auth: ""
+
+  # timeout for attempt to login
+  timeout: 
+
   secret: ""
+
 
 
 ########################################
@@ -297,7 +310,7 @@ webhook:
   jwt:
     # requestHeaders are added to the request for the token.
     # (Optional)
-    # requestHeaders:
+    requestHeaders:
     #   "": ""
 
     # authURL is the URL to access for the token.
