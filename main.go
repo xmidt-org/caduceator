@@ -20,6 +20,8 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -185,7 +187,8 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
 			return err
 		}
-		defer resp.Body.Close()
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
 
 		return err
 	}

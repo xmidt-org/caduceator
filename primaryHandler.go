@@ -92,6 +92,7 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	writer.WriteHeader(http.StatusAccepted)
 }
 
