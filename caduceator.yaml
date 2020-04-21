@@ -244,6 +244,9 @@ webhook:
   # registrationURL provides the place to register the webhook.
   registrationURL: "http://caduceus:6000/hook"
 
+  # number of webhooks we want registering at every registrationInterval
+  webhookCount: 1
+
   # request provides the information passed in the webhook registration request.
   request:
     # config provides configuration values for the requests to the webhook 
