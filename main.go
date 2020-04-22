@@ -234,7 +234,8 @@ func main() {
 	cutoffHandler := alice.New()
 
 	var acquirer *acquire.RemoteBearerTokenAcquirer
-	var periodicRegisterer *webhookClient.PeriodicRegisterer
+
+	periodicRegisterersList := make([]*webhookClient.PeriodicRegisterer, config.Webhook.WebhookCount)
 
 	for i := 1; i <= config.Webhook.WebhookCount; i++ {
 		// set up the registerer
@@ -269,48 +270,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		periodicRegisterer = webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
+		periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
+		periodicRegisterersList = append(periodicRegisterersList, periodicRegisterer)
 
-		// start the registerer
 		periodicRegisterer.Start()
 	}
-
-	// // set up the registerer
-	// basicConfig := webhookClient.BasicConfig{
-	// 	Timeout:         config.Webhook.Timeout,
-	// 	RegistrationURL: config.Webhook.RegistrationURL,
-	// 	Request: webhook.W{
-	// 		Config: webhook.Config{
-	// 			URL: config.Webhook.Request.WebhookConfig.URL,
-	// 		},
-	// 		Events:     []string{config.Webhook.Request.Events},
-	// 		FailureURL: config.Webhook.Request.WebhookConfig.FailureURL,
-	// 	},
-	// }
-
-	// acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
-	// 	AuthURL:        config.Webhook.JWT.AuthURL,
-	// 	Timeout:        config.Webhook.JWT.Timeout,
-	// 	Buffer:         config.Webhook.JWT.Buffer,
-	// 	RequestHeaders: config.Webhook.JWT.RequestHeaders,
-	// }
-
-	// acquirer, err := acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
-	// if err != nil {
-	// 	logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
-	// 	os.Exit(1)
-	// }
-
-	// registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
-	// if err != nil {
-	// 	logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
-	// 	os.Exit(1)
-	// }
-
-	// periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
-
-	// // start the registerer
-	// periodicRegisterer.Start()
 
 	router := mux.NewRouter()
 
@@ -370,7 +334,9 @@ func main() {
 	}
 
 	metrics.Close()
-	periodicRegisterer.Stop()
+	for i := 1; i <= len(periodicRegisterersList); i++ {
+		periodicRegisterersList[i].Stop()
+	}
 	close(shutdown)
 	waitGroup.Wait()
 	logging.Info(logger).Log(logging.MessageKey(), "Caduceator has shut down")
