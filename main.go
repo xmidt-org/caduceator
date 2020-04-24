@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"time"
 
@@ -59,7 +60,6 @@ type Config struct {
 	Webhook          Webhook
 	Secret           Secret
 	PrometheusConfig PrometheusConfig
-	// MetricConfig     MetricConfig
 }
 
 type VegetaConfig struct {
@@ -90,6 +90,7 @@ type Webhook struct {
 	RegistrationInterval time.Duration
 	Timeout              time.Duration
 	RegistrationURL      string
+	WebhookCount         int
 	Request              Request
 	Basic                string
 	JWT                  JWT
@@ -232,42 +233,48 @@ func main() {
 	eventHandler := alice.New(authConstructor)
 	cutoffHandler := alice.New()
 
-	// set up the registerer
-	basicConfig := webhookClient.BasicConfig{
-		Timeout:         config.Webhook.Timeout,
-		RegistrationURL: config.Webhook.RegistrationURL,
-		Request: webhook.W{
-			Config: webhook.Config{
-				URL: config.Webhook.Request.WebhookConfig.URL,
+	var acquirer *acquire.RemoteBearerTokenAcquirer
+
+	periodicRegisterersList := make([]*webhookClient.PeriodicRegisterer, config.Webhook.WebhookCount)
+
+	for i := 1; i <= config.Webhook.WebhookCount; i++ {
+		// set up the registerer
+		basicConfig := webhookClient.BasicConfig{
+			Timeout:         config.Webhook.Timeout,
+			RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			Request: webhook.W{
+				Config: webhook.Config{
+					URL: config.Webhook.Request.WebhookConfig.URL + "?webhook=" + strconv.Itoa(i),
+				},
+				Events:     []string{config.Webhook.Request.Events},
+				FailureURL: config.Webhook.Request.WebhookConfig.FailureURL + "?webhook=" + strconv.Itoa(i),
 			},
-			Events:     []string{config.Webhook.Request.Events},
-			FailureURL: config.Webhook.Request.WebhookConfig.FailureURL,
-		},
+		}
+
+		acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
+			AuthURL:        config.Webhook.JWT.AuthURL,
+			Timeout:        config.Webhook.JWT.Timeout,
+			Buffer:         config.Webhook.JWT.Buffer,
+			RequestHeaders: config.Webhook.JWT.RequestHeaders,
+		}
+
+		acquirer, err = acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
+		if err != nil {
+			logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
+			os.Exit(1)
+		}
+
+		registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
+		if err != nil {
+			logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
+			os.Exit(1)
+		}
+
+		periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
+		periodicRegisterersList = append(periodicRegisterersList, periodicRegisterer)
+
+		periodicRegisterer.Start()
 	}
-
-	acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
-		AuthURL:        config.Webhook.JWT.AuthURL,
-		Timeout:        config.Webhook.JWT.Timeout,
-		Buffer:         config.Webhook.JWT.Buffer,
-		RequestHeaders: config.Webhook.JWT.RequestHeaders,
-	}
-
-	acquirer, err := acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
-	if err != nil {
-		logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
-		os.Exit(1)
-	}
-
-	registerer, err := webhookClient.NewBasicRegisterer(acquirer, secretGetter, basicConfig)
-	if err != nil {
-		logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
-		os.Exit(1)
-	}
-
-	periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
-
-	// start the registerer
-	periodicRegisterer.Start()
 
 	router := mux.NewRouter()
 
@@ -275,15 +282,11 @@ func main() {
 
 	attacker := vegeta.NewAttacker(vegeta.Connections(config.VegetaConfig.Connections))
 
-	// durations := make(chan time.Duration, config.VegetaConfig.MaxRoutines)
-	durations := make(chan time.Duration)
-
 	app := &App{logger: logger,
 		measures:          measures,
 		attacker:          attacker,
 		maxRoutines:       config.VegetaConfig.MaxRoutines,
 		counter:           1,
-		durations:         durations,
 		mutex:             &sync.Mutex{},
 		queryURL:          config.PrometheusConfig.QueryURL,
 		queryExpression:   config.PrometheusConfig.QueryExpression,
@@ -331,7 +334,9 @@ func main() {
 	}
 
 	metrics.Close()
-	periodicRegisterer.Stop()
+	for i := 1; i <= len(periodicRegisterersList); i++ {
+		periodicRegisterersList[i].Stop()
+	}
 	close(shutdown)
 	waitGroup.Wait()
 	logging.Info(logger).Log(logging.MessageKey(), "Caduceator has shut down")
