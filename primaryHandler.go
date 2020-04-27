@@ -52,6 +52,7 @@ type App struct {
 	sleepTimeAfter    time.Duration
 	prometheusAuth    string
 	timeoutPrometheus time.Duration
+	webhookURLs       []string
 }
 
 const (

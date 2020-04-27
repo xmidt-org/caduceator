@@ -235,6 +235,8 @@ func main() {
 
 	var acquirer *acquire.RemoteBearerTokenAcquirer
 
+	var webhookURLs []string
+
 	periodicRegisterersList := make([]*webhookClient.PeriodicRegisterer, config.Webhook.WebhookCount)
 
 	for i := 1; i <= config.Webhook.WebhookCount; i++ {
@@ -250,6 +252,8 @@ func main() {
 				FailureURL: config.Webhook.Request.WebhookConfig.FailureURL + "?webhook=" + strconv.Itoa(i),
 			},
 		}
+
+		webhookURLs = append(webhookURLs, basicConfig.Request.Config.URL)
 
 		acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
 			AuthURL:        config.Webhook.JWT.AuthURL,
@@ -295,6 +299,7 @@ func main() {
 		sleepTimeAfter:    config.VegetaConfig.SleepTimeAfter,
 		prometheusAuth:    config.PrometheusConfig.Auth,
 		timeoutPrometheus: config.PrometheusConfig.Timeout,
+		webhookURLs:       webhookURLs,
 	}
 
 	// start listening

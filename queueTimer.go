@@ -47,6 +47,15 @@ type Metric struct {
 	Url string
 }
 
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func (app *App) calculateDuration(cutoffTime time.Time) {
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "entered duration function")
@@ -91,8 +100,7 @@ Loop:
 
 					// only calculating duration once queue size reaches 0
 					val, _ := strconv.Atoi(results.Value[1].(string))
-					if results.Metric.Url == app.metricsURL && val <= 500 {
-
+					if contains(app.webhookURLs, results.Metric.Url) && val <= 500 {
 						// putting calculated duration into histogram metric
 						app.measures.TimeInMemory.Observe(currentTime.Sub(cutoffTime).Seconds())
 
