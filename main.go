@@ -77,12 +77,13 @@ type VegetaConfig struct {
 }
 
 type VegetaRehash struct {
-	Routines    int
-	Frequency   int
-	Period      time.Duration
-	Connections int
-	Duration    time.Duration
-	Sleep       time.Duration
+	Routines       int
+	Frequency      int
+	Period         time.Duration
+	Connections    int
+	Duration       time.Duration
+	Sleep          time.Duration
+	WrpMessageDest string
 }
 
 type Request struct {
@@ -149,7 +150,7 @@ func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 	rate := vegeta.Rate{Freq: config.VegetaConfig.VegetaRehash.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.VegetaRehash.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.WrpMessageDest), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.VegetaRehash.WrpMessageDest), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 

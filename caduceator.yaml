@@ -192,6 +192,9 @@ vegetaConfig:
     # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
     duration:
 
+    # destination of where to send wrpMessage for rehash events
+    wrpMessageDest:
+
   
 
 ########################################
