@@ -64,6 +64,7 @@ type Config struct {
 
 type VegetaConfig struct {
 	Frequency      int
+	Period         time.Duration
 	Connections    int
 	Duration       time.Duration
 	MaxRoutines    int
@@ -71,6 +72,17 @@ type VegetaConfig struct {
 	SleepTime      time.Duration
 	ClientTimeout  time.Duration
 	SleepTimeAfter time.Duration
+	WrpMessageDest string
+	VegetaRehash   VegetaRehash
+}
+
+type VegetaRehash struct {
+	Routines       int
+	Frequency      int
+	Period         time.Duration
+	Connections    int
+	Duration       time.Duration
+	Sleep          time.Duration
 	WrpMessageDest string
 }
 
@@ -117,10 +129,28 @@ type PrometheusConfig struct {
 }
 
 func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
-	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: time.Second}
+	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.Duration * time.Minute
 
 	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.WrpMessageDest), rate, duration, "Big Bang!") {
+		metrics.Add(res)
+	}
+
+	metricsReporter := vegeta.NewTextReporter(&metrics)
+
+	err := metricsReporter.Report(os.Stdout)
+
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "vegeta failed", logging.ErrorKey(), err.Error())
+		os.Exit(1)
+	}
+}
+
+func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
+	rate := vegeta.Rate{Freq: config.VegetaConfig.VegetaRehash.Frequency, Per: config.VegetaConfig.Period}
+	duration := config.VegetaConfig.VegetaRehash.Duration * time.Minute
+
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.VegetaRehash.WrpMessageDest), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -319,7 +349,21 @@ func main() {
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
+
 	go vegetaStarter(metrics, config, attacker, acquirer, logger)
+
+	rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period * time.Minute)
+
+	if config.VegetaConfig.VegetaRehash.Routines > 0 {
+		for {
+			select {
+			case <-rehashTicker.C:
+				for i := 0; i < config.VegetaConfig.VegetaRehash.Routines; i++ {
+					go rehashStarter(metrics, config, attacker, acquirer, logger)
+				}
+			}
+		}
+	}
 
 	signals := make(chan os.Signal, 10)
 	signal.Notify(signals)
@@ -339,7 +383,7 @@ func main() {
 	}
 
 	metrics.Close()
-	for i := 1; i <= len(periodicRegisterersList); i++ {
+	for i := 0; i < len(periodicRegisterersList); i++ {
 		periodicRegisterersList[i].Stop()
 	}
 	close(shutdown)

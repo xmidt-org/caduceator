@@ -150,6 +150,7 @@ vegetaConfig:
   # frequency is the number of times vegeta will attack target in a second
   frequency: 1000
 
+  period: "1s"
   # connections is the number of idle open connections per target host
   connections: 500
   
@@ -172,6 +173,29 @@ vegetaConfig:
 
   # destination of where to send wrpMessage
   wrpMessageDest: "event:device-status/mac:112233445566/offline"
+
+  # vegeta config to simulate a rehash
+  vegetaRehash:
+    # number of go routines to spawn to hit target
+    routines:
+    
+    # frequency is the number of times vegeta will attack target in a second
+    frequency:
+
+    # period is the time interval vegeta will be attacking
+    period:
+
+    # connections is the number of idle open connections per target host
+    connections:
+
+    # duration is how long vegeta should keep attacking caduceus
+    # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
+    duration:
+
+    # destination of where to send wrpMessage for rehash events
+    wrpMessageDest:
+
+  
 
 ########################################
 #   Prometheus Related Configuration
@@ -197,9 +221,6 @@ prometheusConfig:
 
   # timeout for attempt to login
   timeout: 
-
-  secret: ""
-
 
 
 ########################################
