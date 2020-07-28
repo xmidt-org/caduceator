@@ -1,11 +1,11 @@
 # Caduceator
 
-[![Build Status](https://travis-ci.com/xmidt-org/caduceator.svg?branch=master)](https://travis-ci.com/xmidt-org/caduceator)
-[![codecov.io](http://codecov.io/github/xmidt-org/caduceator/coverage.svg?branch=master)](http://codecov.io/github/xmidt-org/caduceator?branch=master)
+[![Build Status](https://travis-ci.com/xmidt-org/caduceator.svg?branch=main)](https://travis-ci.com/xmidt-org/caduceator)
+[![codecov.io](http://codecov.io/github/xmidt-org/caduceator/coverage.svg?branch=main)](http://codecov.io/github/xmidt-org/caduceator?branch=main)
 [![Code Climate](https://codeclimate.com/github/xmidt-org/caduceator/badges/gpa.svg)](https://codeclimate.com/github/xmidt-org/caduceator)
 [![Issue Count](https://codeclimate.com/github/xmidt-org/caduceator/badges/issue_count.svg)](https://codeclimate.com/github/xmidt-org/caduceator)
 [![Go Report Card](https://goreportcard.com/badge/github.com/xmidt-org/caduceator)](https://goreportcard.com/report/github.com/xmidt-org/caduceator)
-[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/xmidt-org/caduceator/blob/master/LICENSE)
+[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/xmidt-org/caduceator/blob/main/LICENSE)
 [![GitHub release](https://img.shields.io/github/release/xmidt-org/caduceator.svg)](CHANGELOG.md)
 
 
@@ -103,7 +103,7 @@ WIP. TODO: add info
 
 ## Deploy
 
-For deploying on Docker or in Kubernetes, refer to the [deploy README](https://github.com/xmidt-org/codex-deploy/tree/master/deploy/README.md).
+For deploying on Docker or in Kubernetes, refer to the [deploy README](https://github.com/xmidt-org/codex-deploy/tree/main/deploy/README.md).
 
 For running locally, ensure you have the binary [built](#Source). If the binary 
 is in your current folder, run:
