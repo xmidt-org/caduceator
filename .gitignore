@@ -6,6 +6,8 @@
 *.dylib
 caduceator
 .ignore/
+coverage*
+report.json
 
 # Test binary, build with `go test -c`
 *.test
