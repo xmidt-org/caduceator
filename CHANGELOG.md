@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Updated references to the main branch [#14](https://github.com/xmidt-org/caduceator/pull/14)
+- Updated documentation in README.md and config file
 
 ## [v0.1.3]
 - bug fixes

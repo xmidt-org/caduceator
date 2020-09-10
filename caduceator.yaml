@@ -147,25 +147,31 @@ log:
 # vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
 
-  # frequency is the number of times vegeta will attack target in a second
+  # frequency is the number of events that will be sent to Caduceus' notify endpoint every period. 
   frequency: 1000
 
+  # period is how often events will be sent to Caduceus
+  # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
+  # 100 events per second to Caduceus
   period: "1s"
+
   # connections is the number of idle open connections per target host
   connections: 500
   
-  # duration is how long vegeta should keep attacking caduceus
+  # duration is how long (in minutes) vegeta will be sending events to Caduceus
   # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
   duration: 0
 
-  # maxRoutines is the number of times we want caduceus to be cutoff
+  # maxRoutines is used to limit how long to send events until the number of times a cutoff is reached
   # maxRoutines of 0 means that we will get infinite cutoffs
-  maxRoutines: 2
+  maxRoutines: 1
 
   # url to send events to
   postURL: "http://caduceus:6000/api/v3/notify"
 
-  # duration to sleep before sending status
+  # sleepTime is used to slow down the ingestion of events from a consumer's perspective
+  # it is the duration of time to sleep before sending a status back to Caduceus upon receiving events
+  # a longer sleepTime will result in creating a slower consumer. 
   sleepTime: "45s"
 
   # client timeout in seconds
@@ -176,27 +182,65 @@ vegetaConfig:
 
   # vegeta config to simulate a rehash
   vegetaRehash:
-    # number of go routines to spawn to hit target
-    routines:
+
+    # routines is the number of rehashes Caduceus will recieve
+    # if routines is set to 0, no rehashes will take place
+    routines: 0
     
-    # frequency is the number of times vegeta will attack target in a second
+    # frequency is the number of additional events that will be sent to the 
+    # same Caduceus' notify endpoint every period as a rehash. 
     frequency:
 
-    # period is the time interval vegeta will be attacking
+    # period is how often a rehash will occur in Caduceus
     period:
 
     # connections is the number of idle open connections per target host
     connections:
 
-    # duration is how long vegeta should keep attacking caduceus
+    # duration is how long (in minutes) vegeta will be sending events to Caduceus during a rehash period
     # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
     duration:
 
     # destination of where to send wrpMessage for rehash events
     wrpMessageDest:
 
-  
+# The following is an example Caduceator vegeta configuration to load test Caduceus 
+# of a slow consumer by sending 1000 events per second and only wanting Caduceator 
+# to be cutoff by Caduceus 5 times.
 
+# vegetaConfig: 
+#     frequency: 1000,
+#     period: "1s",
+#     connections: 500,
+#     duration : 0,
+#     maxRoutines: 5,
+#     sleepTime: "45s",
+#     clientTimeout: "5s",
+#     wrpMessageDest: "event:device-status/mac:112233445566/offline"
+
+# By adding the following rehash configuration to vegetaConfig, 
+# it will simulate a 2 rehash events in Caduceus by sending an additional 500 events
+# a second every 10 minutes. If routine is set to 0 then no rehash event will occur in Caduceus.
+
+# vegetaConfig: 
+#     frequency: 1000,
+#     period: "1s",
+#     connections: 500,
+#     duration : 0,
+#     maxRoutines: 5,
+#     sleepTime: "45s",
+#     clientTimeout: "5s",
+#     wrpMessageDest: "event:device-status/mac:112233445566/offline"
+#     vegetaRehash: 
+#       routines: 2,
+#       frequency: 500,
+#       period: "1s",
+#       connections: 500,
+#       duration: 0,
+#       wrpMessageDest: "event:device-status/mac:112233445566/offline"
+
+
+  
 ########################################
 #   Prometheus Related Configuration
 ########################################

@@ -28,8 +28,16 @@ This project and everyone participating in it are governed by the [XMiDT Code Of
 By participating, you agree to this Code.
 
 ## Details
+Caduceator's function is to send and recieve events from Caduceus and calculate how long it has been cutoff as a consumer of Caduceus.
 
-TBD.
+Caduceator has two endpoints: 1) receiving events, and 2) receiving cutoffs.
+
+### Receiving Events - `/events` endpoint
+The events endpoint will be able to recieve events from Caduceus after registering a webhook to Caduceus' `/hook` endpoint. Caduceator will then give a response back to Caduceus based on reading the body of the request.
+
+### Receiving Cutoffs - '/cutoff` endpoint
+The cutoff endpoint is hit in Caduceator when Caduceus cutsoff its consumers due to its queue being full. Once the cutoff endpoint is reached, a timer will start and continue until Caduceus empties its queue and is able to send events again to its consumers. The total time it takes to empty is queue is then recorded and saved as a metric.
+
 
 ## Build
 
