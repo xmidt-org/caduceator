@@ -1,7 +1,6 @@
 ---
-
-# The unique fully-qualified-domain-name of the server.  It is provided to 
-# the X-Caduceator-Server header for showing what server fulfilled the request 
+# The unique fully-qualified-domain-name of the server.  It is provided to
+# the X-Caduceator-Server header for showing what server fulfilled the request
 # sent.
 # (Optional)
 server: "caduceator-instance-123.example.com"
@@ -39,7 +38,7 @@ primary:
   # ":443" is ideal, but may require some special handling due to it being
   # a reserved (by the kernel) port.
   address: ":5000"
-  # HTTPS/TLS 
+  # HTTPS/TLS
   #
   # certificateFile provides the public key and CA chain in PEM format if
   # TLS is used.  Note: the certificate needs to match the fqdn for clients
@@ -62,7 +61,7 @@ health:
   # ":80" is ideal, but may require some special handling due to it being
   # a reserved (by the kernel) port.
   port: ":5001"
-  # endpoint provides the endpoint that will provide the health check 
+  # endpoint provides the endpoint that will provide the health check
   # information.
   endpoint: "/health"
 
@@ -146,25 +145,31 @@ log:
 
 # vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
-
-  # frequency is the number of times vegeta will attack target in a second
+  # frequency is the number of events that will be sent to Caduceus' notify endpoint every period.
   frequency: 1000
+
+  # period is how often events will be sent to Caduceus
+  # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
+  # 100 events per second to Caduceus
+  period: "1s"
 
   # connections is the number of idle open connections per target host
   connections: 500
-  
-  # duration is how long vegeta should keep attacking caduceus
+
+  # duration is how long (in minutes) vegeta will be sending events to Caduceus
   # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
   duration: 0
 
-  # maxRoutines is the number of times we want caduceus to be cutoff
+  # maxRoutines is used to limit how long to send events until the number of times a cutoff is reached
   # maxRoutines of 0 means that we will get infinite cutoffs
-  maxRoutines: 2
+  maxRoutines: 1
 
   # url to send events to
   postURL: "http://caduceus:6000/api/v3/notify"
 
-  # duration to sleep before sending status
+  # sleepTime is used to slow down the ingestion of events from a consumer's perspective
+  # it is the duration of time to sleep before sending a status back to Caduceus upon receiving events
+  # a longer sleepTime will result in creating a slower consumer.
   sleepTime: "45s"
 
   # client timeout in seconds
@@ -173,23 +178,82 @@ vegetaConfig:
   # destination of where to send wrpMessage
   wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
+  vegetaRehash:
+    routines: 2
+    frequency: 500
+    period: "1s"
+    connections: 500
+    duration: 0
+    wrpMessageDest: "event:device-status/mac:112233445566/offline"
+
+  # vegeta config to simulate a rehash
+  # vegetaRehash:
+  #   # routines is the number of rehashes Caduceus will recieve
+  #   # if routines is set to 0, no rehashes will take place
+  #   routines: 0
+  #   # frequency is the number of additional events that will be sent to the
+  #   # same Caduceus' notify endpoint every period as a rehash.
+  #   frequency:
+  #   # period is how often a rehash will occur in Caduceus
+  #   period:
+  #   # connections is the number of idle open connections per target host
+  #   connections:
+  #   # duration is how long (in minutes) vegeta will be sending events to Caduceus during a rehash period
+  #   # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
+  #   duration:
+  #   # destination of where to send wrpMessage for rehash events
+  #   wrpMessageDest:
+
+# The following is an example Caduceator vegeta configuration to load test Caduceus
+# of a slow consumer by sending 1000 events per second and only wanting Caduceator
+# to be cutoff by Caduceus 5 times.
+
+# vegetaConfig:
+#     frequency: 1000,
+#     period: "1s",
+#     connections: 500,
+#     duration : 0,
+#     maxRoutines: 5,
+#     sleepTime: "45s",
+#     clientTimeout: "5s",
+#     wrpMessageDest: "event:device-status/mac:112233445566/offline"
+
+# By adding the following rehash configuration to vegetaConfig,
+# it will simulate a 2 rehash events in Caduceus by sending an additional 500 events
+# a second every 10 minutes. If routine is set to 0 then no rehash event will occur in Caduceus.
+
+# vegetaConfig:
+#     frequency: 1000,
+#     period: "1s",
+#     connections: 500,
+#     duration : 0,
+#     maxRoutines: 5,
+#     sleepTime: "45s",
+#     clientTimeout: "5s",
+#     wrpMessageDest: "event:device-status/mac:112233445566/offline"
+#     vegetaRehash:
+#       routines: 2,
+#       frequency: 500,
+#       period: "1s",
+#       connections: 500,
+#       duration: 0,
+#       wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
 ########################################
 #   Prometheus Related Configuration
 ########################################
 
-# prometheusConfig defines details realted to querying metrics from prometheus. 
-# If the below values are all provided, a request is made to the 
-# URL to get the metric from the expression. 
+# prometheusConfig defines details realted to querying metrics from prometheus.
+# If the below values are all provided, a request is made to the
+# URL to get the metric from the expression.
 prometheusConfig:
-
   # queryURL is the server where to query metrics
   queryURL: "http://prometheus:9090/api/v1/query"
-  
+
   # queryExpression is the expression used to get metricss
   queryExpression: "sum(xmidt_caduceus_outgoing_queue_depths) by (url)"
 
-  # metricsURL is used to confirm the values from metrics that are received 
+  # metricsURL is used to confirm the values from metrics that are received
   # is from the endpoint in which events are sent to
   metricsURL: "http://caduceator:5000/events"
 
@@ -197,19 +261,16 @@ prometheusConfig:
   auth: ""
 
   # timeout for attempt to login
-  timeout: 
-
-
-
+  timeout:
 
 ########################################
 #   Authorization Related Configuration
 ########################################
 
-# secret contains information for finding the secret on incoming requests.  If 
-# both header and webhook secret are empty, no authentication is done on 
-# incoming requests to Svalinn.  Otherwise, the value at the header provided 
-# should hold a sha1 hash of the request body.  It should be in the format: 
+# secret contains information for finding the secret on incoming requests.  If
+# both header and webhook secret are empty, no authentication is done on
+# incoming requests to Svalinn.  Otherwise, the value at the header provided
+# should hold a sha1 hash of the request body.  It should be in the format:
 #
 # Sha1<delimiter><hash>
 #
@@ -227,57 +288,60 @@ secret:
 #   Webhook Registration Related Configuration
 ########################################
 
-# webhook provides the information needed to register to a webhook.  If the 
-# urls and event regex aren't empty and the interval is greater than 0, 
+# webhook provides the information needed to register to a webhook.  If the
+# urls and event regex aren't empty and the interval is greater than 0,
 # registration occurs.
 # (Optional)
 webhook:
-  # registrationInterval provides the time to wait between each registration to 
+  # registrationInterval provides the time to wait between each registration to
   # the webhook.  If this is set to 0, no registration is done.
   # (Optional)
-  registrationInterval: ""
+  registrationInterval: "1m"
 
-  # timeout provides the length of time the request should wait before timing 
-  # out (in seconds) 
+  # timeout provides the length of time the request should wait before timing
+  # out (in seconds)
   timeout: 5
 
   # registrationURL provides the place to register the webhook.
   registrationURL: "http://caduceus:6000/hook"
 
+  # number of webhooks we want registering at every registrationInterval
+  webhookCount: 1
+
   # request provides the information passed in the webhook registration request.
   request:
-    # config provides configuration values for the requests to the webhook 
+    # config provides configuration values for the requests to the webhook
     # receiver.
     webhookConfig:
-      # url provides the server the webhook should send the events to.  If this 
+      # url provides the server the webhook should send the events to.  If this
       # value isn't set, no registration happens.
       url: "http://caduceator:5000/events"
 
       failureURL: "http://caduceator:5000/cutoff"
 
-      # contentType provides the content type Svalinn expects from the requests 
+      # contentType provides the content type Svalinn expects from the requests
       # it receives.
       # (Optional) defaults to "wrp"
       #contentType: "wrp"
 
-      # secret provides the key for hashing the messages the webhook sends. 
-      # If this is empty, no authentication is done later for incoming requests 
+      # secret provides the key for hashing the messages the webhook sends.
+      # If this is empty, no authentication is done later for incoming requests
       # to Svalinn.
       # (Optional)
       secret: "secret1234"
 
       # maxRetryCount is the number of times to retry on a failure.
       # (Optional)
-      maxRetryCount: 
+      maxRetryCount:
 
-      # alternativeURLs provides endpoints to round robin through on a failure 
-      # to send an event.  This is only used if the maxRetryCount is greater 
+      # alternativeURLs provides endpoints to round robin through on a failure
+      # to send an event.  This is only used if the maxRetryCount is greater
       # than 0.
       # (Optional)
       #AlternativeURLs: []
 
-    # events provides a list of regular expressions that tells the webhook 
-    # which endpoints to send to Svalinn.  If the destination of an event 
+    # events provides a list of regular expressions that tells the webhook
+    # which endpoints to send to Svalinn.  If the destination of an event
     # matches a regular expression in this list, it is sent to Svalinn
     events: "device-status.*"
 
@@ -286,26 +350,26 @@ webhook:
     # matcher:
     #   deviceID: [".*"]
 
-  # the below configuration values provide a way to add an Authorization header 
-  # to the request to the webhook.  If both basic and sat contain empty values, 
+  # the below configuration values provide a way to add an Authorization header
+  # to the request to the webhook.  If both basic and sat contain empty values,
   # no header is sent.  sat takes priority over basic if both are set.
 
-  # basic provides a way to use Basic Authorization when registering to a 
-  # webhook.  If this value is provided and sat isn't, the following header is 
+  # basic provides a way to use Basic Authorization when registering to a
+  # webhook.  If this value is provided and sat isn't, the following header is
   # added to the registration request:
   #
   # Authorization Basic {basic}
   #
   # (Optional)
-  basic: ""
+  basic: "Basic dXNlcjpwYXNz"
 
-  # jwt provides a way to use Bearer Authorization when registering to a 
-  # webhook.  If the below values are all provided, a request is made to the 
-  # URL to get the token to be used in the registration request.  The 
-  # header would look like: 
-  # 
+  # jwt provides a way to use Bearer Authorization when registering to a
+  # webhook.  If the below values are all provided, a request is made to the
+  # URL to get the token to be used in the registration request.  The
+  # header would look like:
+  #
   # Authorization Bearer {token}
-  # 
+  #
   # (Optional)
   jwt:
     # requestHeaders are added to the request for the token.
@@ -316,7 +380,7 @@ webhook:
     # authURL is the URL to access for the token.
     authURL: ""
 
-    # timeout is how long the request to get the token will take before 
+    # timeout is how long the request to get the token will take before
     # timing out.
     timeout: "1m"
 

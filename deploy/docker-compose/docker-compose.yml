@@ -1,4 +1,4 @@
-version: '3.4'
+version: "3.4"
 services:
   caduceator:
     image: xmidt/caduceator:${CADUCEATOR_VERSION}
@@ -17,42 +17,44 @@ services:
 
   caduceus:
     image: xmidt/caduceus:${CADUCEUS_VERSION}
-    container_name: caduceus
+    environment:
+      - CONSUL_HOST=consul0:8500
+      - ARGUS_HOST=http://argus:6600
     ports:
       - 6000:6000
       - 6001:6001
       - 6002:6002
       - 6003:6003
     depends_on:
-      - goaws
+      - argus
     volumes:
       - ./docFiles/caduceus.yaml:/etc/caduceus/caduceus.yaml
     networks:
       - xmidt
 
-  tr1d1um:
-    image: xmidt/tr1d1um:${TR1D1UM_VERSION}
-    container_name: tr1d1um
+  argus:
+    image: xmidt/argus:${ARGUS_VERSION}
+    environment:
+      - "AWS_ENDPOINT=http://dynamodb:8000"
     ports:
-      - 6100:6100
-      - 6101:6101
-      - 6102:6102
+      - 6600:6600
+      - 6601:6601
+      - 6602:6602
     depends_on:
-      - goaws
+      - dynamodb
     volumes:
-      - ./docFiles/tr1d1um.yaml:/etc/tr1d1um/tr1d1um.yaml
+      - ./docFiles/argus.yml:/tmp/argus_spruce.yaml
     networks:
       - xmidt
 
-  goaws:
-    image: goaws:local
-    container_name: goaws
+  dynamodb:
+    image: amazon/dynamodb-local
+    # hostname: dynamodb
+    hostname: dynamodb
     ports:
-      - 4100:4100
+      - "8000:8000"
     networks:
       - xmidt
-    volumes:
-      - ./docFiles/sns.yaml:/conf/goaws.yaml
 
   prometheus:
     image: prom/prometheus
@@ -66,9 +68,9 @@ services:
       - consul1
     volumes:
       - ./docFiles/prometheus.yml:/prometheus-data/prometheus.yml
-    command:  --log.level=debug --config.file=/prometheus-data/prometheus.yml
+    command: --log.level=debug --config.file=/prometheus-data/prometheus.yml
 
-# Mark Consul Definitions
+  # Mark Consul Definitions
   consul0:
     image: consul:latest
     container_name: consul0
@@ -99,6 +101,5 @@ services:
     volumes:
       - ./docFiles/consul-1.json:/consul.json
     command: "agent -server -bootstrap-expect 1 -ui -client 0.0.0.0 -config-file consul.json"
-
 networks:
   xmidt:

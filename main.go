@@ -128,7 +128,7 @@ type PrometheusConfig struct {
 	Timeout         time.Duration
 }
 
-func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
+func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.Duration * time.Minute
 
@@ -146,7 +146,7 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 	}
 }
 
-func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger) {
+func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.VegetaRehash.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.VegetaRehash.Duration * time.Minute
 
@@ -165,7 +165,7 @@ func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Logger, requestURL string, timeout time.Duration, destination string) vegeta.Targeter {
+func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, requestURL string, timeout time.Duration, destination string) vegeta.Targeter {
 	var client = &http.Client{
 		Timeout: timeout,
 	}
@@ -226,6 +226,25 @@ func Start(id uint64, acquirer *acquire.RemoteBearerTokenAcquirer, logger log.Lo
 
 }
 
+func determineTokenAcquirer(wh Webhook) (acquire.Acquirer, error) {
+	defaultAcquirer := &acquire.DefaultAcquirer{}
+	if wh.JWT.AuthURL != "" && wh.JWT.Buffer != 0 && wh.JWT.Timeout != 0 {
+		acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
+			AuthURL:        wh.JWT.AuthURL,
+			Timeout:        wh.JWT.Timeout,
+			Buffer:         wh.JWT.Buffer,
+			RequestHeaders: wh.JWT.RequestHeaders,
+		}
+		return acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
+	}
+
+	if wh.Basic != "" {
+		return acquire.NewFixedAuthAcquirer(wh.Basic)
+	}
+
+	return defaultAcquirer, nil
+}
+
 func main() {
 
 	var (
@@ -263,7 +282,7 @@ func main() {
 	eventHandler := alice.New(authConstructor)
 	cutoffHandler := alice.New()
 
-	var acquirer *acquire.RemoteBearerTokenAcquirer
+	var acquirer acquire.Acquirer
 
 	var webhookURLs []string
 
@@ -272,8 +291,9 @@ func main() {
 	for i := 1; i <= config.Webhook.WebhookCount; i++ {
 		// set up the registerer
 		basicConfig := webhookClient.BasicConfig{
-			Timeout:         config.Webhook.Timeout,
-			RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			Timeout: config.Webhook.Timeout,
+			// RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			RegistrationURL: config.Webhook.RegistrationURL,
 			Request: webhook.W{
 				Config: webhook.Config{
 					URL: config.Webhook.Request.WebhookConfig.URL + "?webhook=" + strconv.Itoa(i),
@@ -285,16 +305,9 @@ func main() {
 
 		webhookURLs = append(webhookURLs, basicConfig.Request.Config.URL)
 
-		acquireConfig := acquire.RemoteBearerTokenAcquirerOptions{
-			AuthURL:        config.Webhook.JWT.AuthURL,
-			Timeout:        config.Webhook.JWT.Timeout,
-			Buffer:         config.Webhook.JWT.Buffer,
-			RequestHeaders: config.Webhook.JWT.RequestHeaders,
-		}
-
-		acquirer, err = acquire.NewRemoteBearerTokenAcquirer(acquireConfig)
+		acquirer, err = determineTokenAcquirer(config.Webhook)
 		if err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed to create bearer auth plain text acquirer:", logging.ErrorKey(), err.Error())
+			logging.Error(logger).Log(logging.MessageKey(), "failed to create auth plain text acquirer:", logging.ErrorKey(), err.Error())
 			os.Exit(1)
 		}
 

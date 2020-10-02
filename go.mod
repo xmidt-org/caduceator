@@ -18,7 +18,7 @@ require (
 	github.com/streadway/quantile v0.0.0-20150917103942-b0c588724d25 // indirect
 	github.com/tsenart/vegeta v12.7.0+incompatible
 	// github.com/xmidt-org/bascule v0.8.0
-	github.com/xmidt-org/bascule v0.8.0
+	github.com/xmidt-org/bascule v0.8.1
 	github.com/xmidt-org/webpa-common v1.6.3
 	github.com/xmidt-org/wrp-go v1.3.4
 	github.com/xmidt-org/wrp-listener v0.1.2
