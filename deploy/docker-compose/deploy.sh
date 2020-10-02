@@ -10,7 +10,7 @@ popd
 
 echo "Running services..."
 CADUCEUS_VERSION=${CADUCEUS_VERSION:-local} \
-ARGUS_VERSION=${ARGUS_VERSION:-0.3.5} \
+ARGUS_VERSION=${ARGUS_VERSION:-0.3.6} \
 CADUCEATOR_VERSION=${CADUCEATOR_VERSION:-local} \
 SIMULATOR_VERSION=${SIMULATOR_VERSION:-local} \
 docker-compose -f $ROOT_DIR/deploy/docker-compose/docker-compose.yml up -d $@

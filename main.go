@@ -20,6 +20,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -210,8 +211,8 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, requestURL s
 
 		}
 
+		fmt.Println("AUTH VALUE: " + authValue)
 		req.Header.Add("Authorization", authValue)
-
 		resp, err := client.Do(req)
 
 		if err != nil {
@@ -239,6 +240,8 @@ func determineTokenAcquirer(wh Webhook) (acquire.Acquirer, error) {
 	}
 
 	if wh.Basic != "" {
+		fmt.Println("basic!")
+		fmt.Println(wh.Basic)
 		return acquire.NewFixedAuthAcquirer(wh.Basic)
 	}
 

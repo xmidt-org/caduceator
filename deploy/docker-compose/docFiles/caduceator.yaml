@@ -146,7 +146,7 @@ log:
 # vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
   # frequency is the number of events that will be sent to Caduceus' notify endpoint every period.
-  frequency: 1000
+  frequency: 0
 
   # period is how often events will be sent to Caduceus
   # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
@@ -154,7 +154,7 @@ vegetaConfig:
   period: "1s"
 
   # connections is the number of idle open connections per target host
-  connections: 500
+  connections: 0
 
   # duration is how long (in minutes) vegeta will be sending events to Caduceus
   # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
@@ -362,7 +362,6 @@ webhook:
   #
   # (Optional)
   basic: "Basic dXNlcjpwYXNz"
-
   # jwt provides a way to use Bearer Authorization when registering to a
   # webhook.  If the below values are all provided, a request is made to the
   # URL to get the token to be used in the registration request.  The
@@ -371,19 +370,16 @@ webhook:
   # Authorization Bearer {token}
   #
   # (Optional)
-  jwt:
-    # requestHeaders are added to the request for the token.
-    # (Optional)
-    requestHeaders:
-    #   "": ""
-
-    # authURL is the URL to access for the token.
-    authURL: ""
-
-    # timeout is how long the request to get the token will take before
-    # timing out.
-    timeout: "1m"
-
-    # buffer is the length of time before a token expires to get a new token.
-    # (Optional)
-    buffer: "1m"
+  # jwt:
+  #   # requestHeaders are added to the request for the token.
+  #   # (Optional)
+  #   requestHeaders:
+  #   #   "": ""
+  #   # authURL is the URL to access for the token.
+  #   authURL: ""
+  #   # timeout is how long the request to get the token will take before
+  #   # timing out.
+  #   timeout: "1m"
+  #   # buffer is the length of time before a token expires to get a new token.
+  #   # (Optional)
+  #   buffer: "1m"

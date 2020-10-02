@@ -28,7 +28,7 @@ services:
     depends_on:
       - argus
     volumes:
-      - ./docFiles/caduceus.yaml:/etc/caduceus/caduceus.yaml
+      - ./docFiles/caduceus_spruce.yaml:/tmp/caduceus_spruce.yaml
     networks:
       - xmidt
 
