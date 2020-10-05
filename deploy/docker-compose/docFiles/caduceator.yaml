@@ -146,15 +146,15 @@ log:
 # vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
   # frequency is the number of events that will be sent to Caduceus' notify endpoint every period.
-  frequency: 0
+  frequency: 1
 
   # period is how often events will be sent to Caduceus
   # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
   # 100 events per second to Caduceus
-  period: "1s"
+  period: "1m"
 
   # connections is the number of idle open connections per target host
-  connections: 0
+  connections: 500
 
   # duration is how long (in minutes) vegeta will be sending events to Caduceus
   # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
