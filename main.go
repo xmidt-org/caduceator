@@ -20,7 +20,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -211,7 +210,6 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, requestURL s
 
 		}
 
-		fmt.Println("AUTH VALUE: " + authValue)
 		req.Header.Add("Authorization", authValue)
 		resp, err := client.Do(req)
 
@@ -240,8 +238,6 @@ func determineTokenAcquirer(wh Webhook) (acquire.Acquirer, error) {
 	}
 
 	if wh.Basic != "" {
-		fmt.Println("basic!")
-		fmt.Println(wh.Basic)
 		return acquire.NewFixedAuthAcquirer(wh.Basic)
 	}
 
@@ -252,7 +248,7 @@ func main() {
 
 	var (
 		f, v                                     = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
-		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
+		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, webhookClient.Metrics, Metrics)
 	)
 
 	if err != nil {
@@ -320,7 +316,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger)
+		periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, metricsRegistry)
 		periodicRegisterersList = append(periodicRegisterersList, periodicRegisterer)
 
 		periodicRegisterer.Start()
@@ -368,9 +364,8 @@ func main() {
 
 	go vegetaStarter(metrics, config, attacker, acquirer, logger)
 
-	rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period * time.Minute)
-
-	if config.VegetaConfig.VegetaRehash.Routines > 0 {
+	if config.VegetaConfig.VegetaRehash.Routines > 0 && config.VegetaConfig.VegetaRehash.Period.Nanoseconds() > 0 {
+		rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period * time.Minute)
 		for {
 			select {
 			case <-rehashTicker.C:

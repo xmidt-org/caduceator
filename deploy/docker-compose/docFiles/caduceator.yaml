@@ -146,12 +146,12 @@ log:
 # vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
   # frequency is the number of events that will be sent to Caduceus' notify endpoint every period.
-  frequency: 1
+  frequency: 1000
 
   # period is how often events will be sent to Caduceus
   # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
   # 100 events per second to Caduceus
-  period: "1m"
+  period: "5s"
 
   # connections is the number of idle open connections per target host
   connections: 500
@@ -178,10 +178,11 @@ vegetaConfig:
   # destination of where to send wrpMessage
   wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
+  # simulates talaria rehash
   vegetaRehash:
     routines: 2
-    frequency: 500
     period: "1s"
+    frequency: 500
     connections: 500
     duration: 0
     wrpMessageDest: "event:device-status/mac:112233445566/offline"
@@ -299,8 +300,8 @@ webhook:
   registrationInterval: "1m"
 
   # timeout provides the length of time the request should wait before timing
-  # out (in seconds)
-  timeout: 5
+  # out
+  timeout: "5s"
 
   # registrationURL provides the place to register the webhook.
   registrationURL: "http://caduceus:6000/hook"
@@ -361,7 +362,7 @@ webhook:
   # Authorization Basic {basic}
   #
   # (Optional)
-  basic: "Basic dXNlcjpwYXNz"
+  # basic: "Basic dXNlcjpwYXNz"
   # jwt provides a way to use Bearer Authorization when registering to a
   # webhook.  If the below values are all provided, a request is made to the
   # URL to get the token to be used in the registration request.  The
@@ -370,16 +371,16 @@ webhook:
   # Authorization Bearer {token}
   #
   # (Optional)
-  # jwt:
-  #   # requestHeaders are added to the request for the token.
-  #   # (Optional)
-  #   requestHeaders:
-  #   #   "": ""
-  #   # authURL is the URL to access for the token.
-  #   authURL: ""
-  #   # timeout is how long the request to get the token will take before
-  #   # timing out.
-  #   timeout: "1m"
-  #   # buffer is the length of time before a token expires to get a new token.
-  #   # (Optional)
-  #   buffer: "1m"
+  jwt:
+    # requestHeaders are added to the request for the token.
+    # (Optional)
+    requestHeaders:
+      # - "":""
+    # authURL is the URL to access for the token.
+    authURL: ""
+    # timeout is how long the request to get the token will take before
+    # timing out.
+    timeout: "1m"
+    # buffer is the length of time before a token expires to get a new token.
+    # (Optional)
+    buffer: "1m"
