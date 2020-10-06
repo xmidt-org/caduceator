@@ -290,9 +290,8 @@ func main() {
 	for i := 1; i <= config.Webhook.WebhookCount; i++ {
 		// set up the registerer
 		basicConfig := webhookClient.BasicConfig{
-			Timeout: config.Webhook.Timeout,
-			// RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
-			RegistrationURL: config.Webhook.RegistrationURL,
+			Timeout:         config.Webhook.Timeout,
+			RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
 			Request: webhook.W{
 				Config: webhook.Config{
 					URL: config.Webhook.Request.WebhookConfig.URL + "?webhook=" + strconv.Itoa(i),
@@ -377,16 +376,12 @@ func main() {
 	}
 
 	signals := make(chan os.Signal, 10)
-	signal.Notify(signals)
+	signal.Notify(signals, os.Kill, os.Interrupt)
 	for exit := false; !exit; {
 		select {
 		case s := <-signals:
-			if s != os.Kill && s != os.Interrupt {
-				logging.Info(logger).Log(logging.MessageKey(), "ignoring signal", "signal", s)
-			} else {
-				logging.Error(logger).Log(logging.MessageKey(), "exiting due to signal", "signal", s)
-				exit = true
-			}
+			logging.Error(logger).Log(logging.MessageKey(), "exiting due to signal", "signal", s)
+			exit = true
 		case <-done:
 			logging.Error(logger).Log(logging.MessageKey(), "one or more servers exited")
 			exit = true

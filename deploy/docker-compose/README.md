@@ -8,7 +8,9 @@ In order to deploy into Docker, make sure [Docker is installed](https://docs.doc
 
 1. Clone this repository
 
-2. Run `deploy/docker-compose/deploy.sh`
+2. Install AWS CLI. 
+
+3. Run `deploy/docker-compose/deploy.sh`
    
     This will run `docker-compose up` which uses images of `caduceus`, `argus`, and `caduceator`, from dockerhub. 
 
@@ -30,7 +32,7 @@ In order to deploy into Docker, make sure [Docker is installed](https://docs.doc
     CADUCEUS_VERSION=${CADUCEUS_VERSION:-local}
     ```
 
-3. To bring the containers down:
+4. To bring the containers down:
    ```bash
    docker-compose -f deploy/docker-compose/docker-compose.yml down
    ```

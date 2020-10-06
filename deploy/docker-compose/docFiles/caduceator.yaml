@@ -162,7 +162,7 @@ vegetaConfig:
 
   # maxRoutines is used to limit how long to send events until the number of times a cutoff is reached
   # maxRoutines of 0 means that we will get infinite cutoffs
-  maxRoutines: 1
+  maxRoutines: 0
 
   # url to send events to
   postURL: "http://caduceus:6000/api/v3/notify"
@@ -170,7 +170,7 @@ vegetaConfig:
   # sleepTime is used to slow down the ingestion of events from a consumer's perspective
   # it is the duration of time to sleep before sending a status back to Caduceus upon receiving events
   # a longer sleepTime will result in creating a slower consumer.
-  sleepTime: "45s"
+  sleepTime: "5s"
 
   # client timeout in seconds
   clientTimeout: "5s"
@@ -180,7 +180,7 @@ vegetaConfig:
 
   # simulates talaria rehash
   vegetaRehash:
-    routines: 2
+    routines: 0
     period: "1s"
     frequency: 500
     connections: 500
@@ -297,7 +297,7 @@ webhook:
   # registrationInterval provides the time to wait between each registration to
   # the webhook.  If this is set to 0, no registration is done.
   # (Optional)
-  registrationInterval: "1m"
+  registrationInterval: "3m"
 
   # timeout provides the length of time the request should wait before timing
   # out
@@ -345,16 +345,13 @@ webhook:
     # which endpoints to send to Svalinn.  If the destination of an event
     # matches a regular expression in this list, it is sent to Svalinn
     events: "device-status.*"
-
     # matcher provides regular expressions to match against the event source.
     # (Optional) default is [".*"]
     # matcher:
     #   deviceID: [".*"]
-
   # the below configuration values provide a way to add an Authorization header
   # to the request to the webhook.  If both basic and sat contain empty values,
   # no header is sent.  sat takes priority over basic if both are set.
-
   # basic provides a way to use Basic Authorization when registering to a
   # webhook.  If this value is provided and sat isn't, the following header is
   # added to the registration request:
@@ -362,7 +359,7 @@ webhook:
   # Authorization Basic {basic}
   #
   # (Optional)
-  # basic: "Basic dXNlcjpwYXNz"
+  basic: "Basic dXNlcjpwYXNz"
   # jwt provides a way to use Bearer Authorization when registering to a
   # webhook.  If the below values are all provided, a request is made to the
   # URL to get the token to be used in the registration request.  The
@@ -371,16 +368,16 @@ webhook:
   # Authorization Bearer {token}
   #
   # (Optional)
-  jwt:
-    # requestHeaders are added to the request for the token.
-    # (Optional)
-    requestHeaders:
-      # - "":""
-    # authURL is the URL to access for the token.
-    authURL: ""
-    # timeout is how long the request to get the token will take before
-    # timing out.
-    timeout: "1m"
-    # buffer is the length of time before a token expires to get a new token.
-    # (Optional)
-    buffer: "1m"
+  # jwt:
+  #   # requestHeaders are added to the request for the token.
+  #   # (Optional)
+  #   requestHeaders:
+  #     # - "":""
+  #   # authURL is the URL to access for the token.
+  #   authURL: ""
+  #   # timeout is how long the request to get the token will take before
+  #   # timing out.
+  #   timeout: "1m"
+  #   # buffer is the length of time before a token expires to get a new token.
+  #   # (Optional)
+  #   buffer: "1m"

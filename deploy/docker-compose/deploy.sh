@@ -13,6 +13,3 @@ sleep 10
 
 bash config_dynamodb.sh
 
-
-# TR1D1UM_VERSION=${TR1D1UM_VERSION:-0.1.5} \
-# CADUCEUS_VERSION=${CADUCEUS_VERSION:-0.2.1} \

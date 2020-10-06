@@ -242,7 +242,7 @@ webhookStore:
   bucket: "webhooks-caduceus"
   address: (( grab $ARGUS_HOST || "argus:6600" ))
   pullInterval: "2s"
-  defaultTTL: 300
+  defaultTTL: 120
   auth:
     basic: (( grab $AUTH_HEADER || "Basic dXNlcjpwYXNz" ))
 ########################################
