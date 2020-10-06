@@ -1,3 +1,5 @@
+.DS_Store
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -23,3 +25,5 @@ coverage.txt
 
 # binaries
 caduceator_*
+
+*.pem
