@@ -8,7 +8,7 @@ In order to deploy into Docker, make sure [Docker is installed](https://docs.doc
 
 1. Clone this repository
 
-2. Install AWS CLI. 
+2. [Install AWS CLI.](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
 3. Run `deploy/docker-compose/deploy.sh`
    
@@ -32,11 +32,7 @@ In order to deploy into Docker, make sure [Docker is installed](https://docs.doc
     CADUCEUS_VERSION=${CADUCEUS_VERSION:-local}
     ```
 
-<<<<<<< HEAD
 4. To bring the containers down:
-=======
-3. To bring the containers down:
->>>>>>> 0a673904d6cf86c81f8820c40d36100e9f4225ee
    ```bash
    docker-compose -f deploy/docker-compose/docker-compose.yml down
    ```
