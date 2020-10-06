@@ -290,8 +290,9 @@ func main() {
 	for i := 1; i <= config.Webhook.WebhookCount; i++ {
 		// set up the registerer
 		basicConfig := webhookClient.BasicConfig{
-			Timeout:         config.Webhook.Timeout,
-			RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			Timeout: config.Webhook.Timeout,
+			// RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			RegistrationURL: config.Webhook.RegistrationURL,
 			Request: webhook.W{
 				Config: webhook.Config{
 					URL: config.Webhook.Request.WebhookConfig.URL + "?webhook=" + strconv.Itoa(i),
