@@ -18,5 +18,5 @@ require (
 	github.com/xmidt-org/bascule v0.8.1
 	github.com/xmidt-org/webpa-common v1.6.3
 	github.com/xmidt-org/wrp-go v1.3.4
-	github.com/xmidt-org/wrp-listener v0.2.1
+	github.com/xmidt-org/wrp-listener v0.2.2-0.20201008164425-8cc15715a0bb
 )

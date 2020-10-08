@@ -315,7 +315,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		periodicRegisterer := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, metricsRegistry)
+		periodicRegisterer, err := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, metricsRegistry)
+
+		if err != nil {
+			logging.Error(logger).Log(logging.MessageKey(), "failed to setup periodic registerer", logging.ErrorKey(), err.Error())
+			os.Exit(1)
+		}
 		periodicRegisterersList = append(periodicRegisterersList, periodicRegisterer)
 
 		periodicRegisterer.Start()
@@ -390,7 +395,10 @@ func main() {
 
 	metrics.Close()
 	for i := 0; i < len(periodicRegisterersList); i++ {
-		periodicRegisterersList[i].Stop()
+		if periodicRegisterersList[i] != nil {
+			periodicRegisterersList[i].Stop()
+		}
+
 	}
 	close(shutdown)
 	waitGroup.Wait()

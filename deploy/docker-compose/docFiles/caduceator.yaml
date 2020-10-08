@@ -297,7 +297,7 @@ webhook:
   # registrationInterval provides the time to wait between each registration to
   # the webhook.  If this is set to 0, no registration is done.
   # (Optional)
-  registrationInterval: "3m"
+  registrationInterval: "5m"
 
   # timeout provides the length of time the request should wait before timing
   # out
