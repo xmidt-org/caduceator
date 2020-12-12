@@ -1,12 +1,12 @@
-.DS_Store
-
-# Binaries for programs and plugins
+# Ignore build product.
+caduceator
+.ignore
+errors.txt
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-caduceator
 .ignore/
 coverage*
 report.json
@@ -14,16 +14,24 @@ report.json
 # Test binary, build with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+bin/
+pkg/
+lib/
 *.out
-coverage.txt
+*.swp
 
-*vendor/
+# for VSCode
+.vscode/
 
-#Goland
+# for goland
 .idea/
+report.json
 
-# binaries
-caduceator_*
+# for releases
+.ignore/
 
-*.pem
+# vendor package
+vendor/
+
+# docker-compose
+deploy/docker-compose/

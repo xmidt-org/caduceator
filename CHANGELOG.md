@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Migrate to github actions, normalize analysis tools, Dockerfiles and Makefiles. [#23](https://github.com/xmidt-org/caduceator/pull/23)
 - Updated references to the main branch [#14](https://github.com/xmidt-org/caduceator/pull/14)
 - Updated documentation in README.md and config file
 
