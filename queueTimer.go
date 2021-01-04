@@ -93,7 +93,7 @@ Loop:
 			}
 
 			var content Content
-			json.Unmarshal([]byte(contents), &content)
+			json.Unmarshal(contents, &content)
 
 			if content.Data.ResultType == "vector" {
 				for _, results := range content.Data.Result {
