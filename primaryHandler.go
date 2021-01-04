@@ -39,7 +39,6 @@ type Measures struct {
 // App used for logging and saving durations
 type App struct {
 	logger            log.Logger
-	durations         chan time.Duration
 	measures          *Measures
 	attacker          *vegeta.Attacker
 	counter           int
