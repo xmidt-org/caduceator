@@ -74,7 +74,6 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 	req.Header.Add("Authorization", app.prometheusAuth)
 	logging.Info(app.logger).Log(logging.MessageKey(), "added authorization")
 
-Loop:
 	for {
 
 		currentTime := time.Now()
@@ -107,11 +106,10 @@ Loop:
 						logging.Info(app.logger).Log(logging.MessageKey(), "time queue is 0: "+currentTime.String())
 
 						logging.Info(app.logger).Log(logging.MessageKey(), "sent histogram metric to prometheus: "+currentTime.Sub(cutoffTime).String())
-						break Loop
+						return
 					}
 				}
 			}
 		}
 	}
-	return
 }
