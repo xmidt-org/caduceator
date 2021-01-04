@@ -244,6 +244,7 @@ func determineTokenAcquirer(wh Webhook) (acquire.Acquirer, error) {
 	return defaultAcquirer, nil
 }
 
+//nolint:funlen // this will be fixed with uber fx
 func main() {
 
 	var (
