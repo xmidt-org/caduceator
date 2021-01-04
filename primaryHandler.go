@@ -39,7 +39,6 @@ type Measures struct {
 // App used for logging and saving durations
 type App struct {
 	logger            log.Logger
-	durations         chan time.Duration
 	measures          *Measures
 	attacker          *vegeta.Attacker
 	counter           int
@@ -83,7 +82,6 @@ func (m *Measures) TrackTime(length time.Duration) {
 }
 
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
-
 	time.Sleep(app.sleepTime)
 
 	_, err := ioutil.ReadAll(req.Body)
@@ -98,13 +96,11 @@ func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
-
 	cutoffTime := time.Now()
 
 	logging.Info(app.logger).Log(logging.MessageKey(), "time caduceus queue is full: "+cutoffTime.String())
-
-	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(int(app.counter)))
-	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(int(app.maxRoutines)))
+	logging.Info(app.logger).Log(logging.MessageKey(), "counter: "+strconv.Itoa(app.counter))
+	logging.Info(app.logger).Log(logging.MessageKey(), "max routines: "+strconv.Itoa(app.maxRoutines))
 
 	app.mutex.Lock()
 
@@ -120,6 +116,4 @@ func (app *App) receiveCutoff(writer http.ResponseWriter, req *http.Request) {
 		go app.calculateDuration(cutoffTime)
 		app.mutex.Unlock()
 	}
-
-	return
 }
