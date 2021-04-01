@@ -188,12 +188,12 @@ vegetaConfig:
     # payload contains key value pairs that will be marshaled into a json and converted into a byte string
     payload:
       - "payloadKey": "payloadVal"
-    # bootTimeDuration is a duration used in creating the boot-time time-stamp. This duration
+    # bootTimeOffset is a duration used in creating the boot-time time-stamp. This duration
     # is added to the current time.
-    bootTimeDuration: "-2h"
-    # bootTimeDuration is a duration used in creating the birthdate time-stamp. This duration
+    bootTimeOffset: "-2h"
+    # bootTimeOffset is a duration used in creating the birthdate time-stamp. This duration
     # is added to the current time.
-    birthdateDuration: "-1h"
+    birthdateOffset: "-1h"
     # fixedCurrentTime dictates whether to use the time from the start of the application or
     # time.Now when calculating the timestamps for the message. If false, it uses time.Now.
     fixedCurrentTime: false

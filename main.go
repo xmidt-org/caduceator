@@ -89,11 +89,11 @@ type VegetaRehash struct {
 }
 
 type Message struct {
-	Wrp               wrp.Message
-	Payload           map[string]string
-	BootTimeDuration  time.Duration
-	BirthdateDuration time.Duration
-	FixedCurrentTime  bool
+	Wrp              wrp.Message
+	Payload          map[string]string
+	BootTimeOffset   time.Duration
+	BirthdateOffset  time.Duration
+	FixedCurrentTime bool
 }
 
 type Request struct {
@@ -138,11 +138,11 @@ type PrometheusConfig struct {
 	Timeout         time.Duration
 }
 
-func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, currTime func() time.Time, logger log.Logger) {
+func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, appStartTime time.Time, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig, currTime), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig, appStartTime), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -156,11 +156,11 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 	}
 }
 
-func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, currTime func() time.Time, logger log.Logger) {
+func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, appStartTime time.Time, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.VegetaRehash.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.VegetaRehash.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig, currTime), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig, appStartTime), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -175,12 +175,14 @@ func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, config VegetaConfig, currTime func() time.Time) vegeta.Targeter {
+func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, config VegetaConfig, appStartTime time.Time) vegeta.Targeter {
 	var client = &http.Client{
 		Timeout: config.ClientTimeout,
 	}
+
+	config.MessageDetails = checkMessage(config.MessageDetails)
 	return func(target *vegeta.Target) (err error) {
-		message := createWrp(config.MessageDetails, currTime, logger)
+		message := createWrp(config.MessageDetails, appStartTime, logger)
 		// encoding wrp.Message
 		var (
 			buffer  bytes.Buffer
@@ -221,14 +223,7 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, config Veget
 
 }
 
-func createWrp(message Message, fixedCurrentTime func() time.Time, logger log.Logger) wrp.Message {
-	var current time.Time
-	if message.FixedCurrentTime {
-		current = fixedCurrentTime()
-	} else {
-		current = time.Now()
-	}
-
+func checkMessage(message Message) Message {
 	wrpMsg := message.Wrp
 	wrpMsg.Type = 4
 
@@ -252,7 +247,6 @@ func createWrp(message Message, fixedCurrentTime func() time.Time, logger log.Lo
 		wrpMsg.Metadata = make(map[string]string)
 	}
 
-	wrpMsg.Metadata["/boot-time"] = fmt.Sprint(current.Add(message.BootTimeDuration).Unix())
 	if _, ok := wrpMsg.Metadata["/trust"]; !ok {
 		wrpMsg.Metadata["/trust"] = "0"
 	}
@@ -261,7 +255,23 @@ func createWrp(message Message, fixedCurrentTime func() time.Time, logger log.Lo
 		wrpMsg.Metadata["/compliance"] = "full"
 	}
 
-	birthdate := current.Add(message.BirthdateDuration).Format(time.RFC3339Nano)
+	message.Wrp = wrpMsg
+	return message
+}
+
+func createWrp(message Message, fixedCurrentTime time.Time, logger log.Logger) wrp.Message {
+	wrpMsg := message.Wrp
+
+	var current time.Time
+	if message.FixedCurrentTime {
+		current = fixedCurrentTime
+	} else {
+		current = time.Now()
+	}
+
+	wrpMsg.Metadata["/boot-time"] = fmt.Sprint(current.Add(message.BootTimeOffset).Unix())
+
+	birthdate := current.Add(message.BirthdateOffset).Format(time.RFC3339Nano)
 	if message.Payload == nil {
 		message.Payload = make(map[string]string)
 	}
@@ -418,11 +428,8 @@ func main() {
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
 	currentTime := time.Now()
-	currentFunc := func() time.Time {
-		return currentTime
-	}
 
-	go vegetaStarter(metrics, config, attacker, acquirer, currentFunc, logger)
+	go vegetaStarter(metrics, config, attacker, acquirer, currentTime, logger)
 
 	if config.VegetaConfig.VegetaRehash.Routines > 0 && config.VegetaConfig.VegetaRehash.Period.Nanoseconds() > 0 {
 		rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period * time.Minute)
@@ -431,7 +438,7 @@ func main() {
 			select {
 			case <-rehashTicker.C:
 				for i := 0; i < config.VegetaConfig.VegetaRehash.Routines; i++ {
-					go rehashStarter(metrics, config, attacker, acquirer, currentFunc, logger)
+					go rehashStarter(metrics, config, attacker, acquirer, currentTime, logger)
 				}
 			case <-shutdown:
 				break Loop
