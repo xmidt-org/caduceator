@@ -20,6 +20,8 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -72,7 +74,7 @@ type VegetaConfig struct {
 	SleepTime      time.Duration
 	ClientTimeout  time.Duration
 	SleepTimeAfter time.Duration
-	WrpMessageDest string
+	MessageDetails Message
 	VegetaRehash   VegetaRehash
 }
 
@@ -83,7 +85,15 @@ type VegetaRehash struct {
 	Connections    int
 	Duration       time.Duration
 	Sleep          time.Duration
-	WrpMessageDest string
+	MessageDetails Message
+}
+
+type Message struct {
+	Wrp              wrp.Message
+	Payload          map[string]string
+	BootTimeOffset   time.Duration
+	BirthdateOffset  time.Duration
+	FixedCurrentTime bool
 }
 
 type Request struct {
@@ -128,11 +138,11 @@ type PrometheusConfig struct {
 	Timeout         time.Duration
 }
 
-func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, logger log.Logger) {
+func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, appStartTime time.Time, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.WrpMessageDest), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig, appStartTime), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -146,11 +156,11 @@ func vegetaStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 	}
 }
 
-func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, logger log.Logger) {
+func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Attacker, acquirer acquire.Acquirer, appStartTime time.Time, logger log.Logger) {
 	rate := vegeta.Rate{Freq: config.VegetaConfig.VegetaRehash.Frequency, Per: config.VegetaConfig.Period}
 	duration := config.VegetaConfig.VegetaRehash.Duration * time.Minute
 
-	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig.PostURL, config.VegetaConfig.ClientTimeout, config.VegetaConfig.VegetaRehash.WrpMessageDest), rate, duration, "Big Bang!") {
+	for res := range attacker.Attack(Start(0, acquirer, logger, config.VegetaConfig, appStartTime), rate, duration, "Big Bang!") {
 		metrics.Add(res)
 	}
 
@@ -165,26 +175,14 @@ func rehashStarter(metrics vegeta.Metrics, config *Config, attacker *vegeta.Atta
 }
 
 // Start function is used to send events to Caduceus
-func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, requestURL string, timeout time.Duration, destination string) vegeta.Targeter {
+func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, config VegetaConfig, appStartTime time.Time) vegeta.Targeter {
 	var client = &http.Client{
-		Timeout: timeout,
+		Timeout: config.ClientTimeout,
 	}
+
+	config.MessageDetails = checkMessage(config.MessageDetails)
 	return func(target *vegeta.Target) (err error) {
-
-		message := wrp.Message{
-			Type:            4,
-			Source:          "dns:talaria",
-			Destination:     destination,
-			TransactionUUID: "abcd",
-			ContentType:     "json",
-			Metadata: map[string]string{
-				"/trust":      "0",
-				"/compliance": "full",
-				"/boot-time":  "1582511208",
-			},
-			Payload: []byte("ewoJCSJpZCI6ICJtYWM6MTEyMjMzNDQ1NTY2IiwKCQkidHMiOiAiMjAyMC0wMi0yMFQwMToyMjoyNC4xNDc0NDkzMDJaIiwKCQkiYnl0ZXMtc2VudCI6IDIxMzQsCgkJIm1lc3NhZ2VzLXNlbnQiOiA4LAoJCSJieXRlcy1yZWNlaXZlZCI6IDU1NTcsCgkJIm1lc3NhZ2VzLXJlY2VpdmVkIjogMSwKCQkiY29ubmVjdGVkLWF0IjogIjIwMjAtMDItMTlUMTE6NTU6MjMuNzQ1MDU1NzFaIiwKCQkicmVhc29uLWZvci1jbG9zdXJlIjogInJlYWRlcnJvciIKCX0="),
-		}
-
+		message := createWrp(config.MessageDetails, appStartTime, logger)
 		// encoding wrp.Message
 		var (
 			buffer  bytes.Buffer
@@ -195,7 +193,7 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, requestURL s
 			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
 		}
 
-		req, err := http.NewRequest("POST", requestURL, &buffer)
+		req, err := http.NewRequest("POST", config.PostURL, &buffer)
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
 			return err
@@ -223,6 +221,69 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, requestURL s
 		return err
 	}
 
+}
+
+func checkMessage(message Message) Message {
+	wrpMsg := message.Wrp
+	wrpMsg.Type = 4
+
+	if len(wrpMsg.Destination) == 0 {
+		wrpMsg.Destination = "event:device-status/mac:112233445566/online"
+	}
+
+	if len(wrpMsg.Source) == 0 {
+		wrpMsg.Source = "dns:talaria"
+	}
+
+	if len(wrpMsg.TransactionUUID) == 0 {
+		wrpMsg.TransactionUUID = "abcd"
+	}
+
+	if len(wrpMsg.ContentType) == 0 {
+		wrpMsg.ContentType = "json"
+	}
+
+	if wrpMsg.Metadata == nil {
+		wrpMsg.Metadata = make(map[string]string)
+	}
+
+	if _, ok := wrpMsg.Metadata["/trust"]; !ok {
+		wrpMsg.Metadata["/trust"] = "0"
+	}
+
+	if _, ok := wrpMsg.Metadata["/compliance"]; !ok {
+		wrpMsg.Metadata["/compliance"] = "full"
+	}
+
+	message.Wrp = wrpMsg
+	return message
+}
+
+func createWrp(message Message, fixedCurrentTime time.Time, logger log.Logger) wrp.Message {
+	wrpMsg := message.Wrp
+
+	var current time.Time
+	if message.FixedCurrentTime {
+		current = fixedCurrentTime
+	} else {
+		current = time.Now()
+	}
+
+	wrpMsg.Metadata["/boot-time"] = fmt.Sprint(current.Add(message.BootTimeOffset).Unix())
+
+	birthdate := current.Add(message.BirthdateOffset).Format(time.RFC3339Nano)
+	if message.Payload == nil {
+		message.Payload = make(map[string]string)
+	}
+	message.Payload["ts"] = birthdate
+	if j, err := json.Marshal(message.Payload); err == nil {
+		wrpMsg.Payload = []byte(string(j))
+	} else {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to marshal custom payload", logging.ErrorKey(), err.Error())
+		wrpMsg.Payload = []byte(fmt.Sprintf(`{"ts":"%s"}`, birthdate))
+	}
+
+	return wrpMsg
 }
 
 func determineTokenAcquirer(wh Webhook) (acquire.Acquirer, error) {
@@ -366,8 +427,9 @@ func main() {
 
 	// send events to Caduceus using vegeta
 	var metrics vegeta.Metrics
+	currentTime := time.Now()
 
-	go vegetaStarter(metrics, config, attacker, acquirer, logger)
+	go vegetaStarter(metrics, config, attacker, acquirer, currentTime, logger)
 
 	if config.VegetaConfig.VegetaRehash.Routines > 0 && config.VegetaConfig.VegetaRehash.Period.Nanoseconds() > 0 {
 		rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period * time.Minute)
@@ -376,7 +438,7 @@ func main() {
 			select {
 			case <-rehashTicker.C:
 				for i := 0; i < config.VegetaConfig.VegetaRehash.Routines; i++ {
-					go rehashStarter(metrics, config, attacker, acquirer, logger)
+					go rehashStarter(metrics, config, attacker, acquirer, currentTime, logger)
 				}
 			case <-shutdown:
 				break Loop
