@@ -151,7 +151,7 @@ vegetaConfig:
   # period is how often events will be sent to Caduceus
   # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
   # 100 events per second to Caduceus
-  period: "5s"
+  period: "1s"
 
   # connections is the number of idle open connections per target host
   connections: 500
@@ -173,10 +173,47 @@ vegetaConfig:
   sleepTime: "5s"
 
   # client timeout in seconds
-  clientTimeout: "5s"
+  clientTimeout: "15s"
 
-  # destination of where to send wrpMessage
-  wrpMessageDest: "event:device-status/mac:112233445566/offline"
+  # messages allows for a list of custom wrp messages to be sent
+  messages:
+    # fixedCurrentTime dictates whether to use the time from the start of the application or
+    # time.Now when calculating the timestamps for the message. If false, it uses time.Now.
+    fixedCurrentTime: true
+    # messageContents is a list of wrp message details that dictates the content of the messages being sent. These messages are sent
+    # all at once, meaning that if there are 4 messages in the list and the attacker
+    # attacks at a frequency of 4 per second, 16 messages would be sent per second. For accurate performance testing of caduceus,
+    # it is best to only have one message in this list.
+    messageContents:
+      # wrp is the custom wrp message
+      - wrp:
+          source: "event:device-status/mac:112233445566/source"
+          destination: "event:device-status/mac:112233445566/destination"
+          metadata:
+            - "some-key": "some-value"
+            - "another key": "another value"
+          transactionUUID: "uuid-string"
+          #     # payload contains key value pairs that will be marshaled into a json and converted into a byte string
+        #   # bootTimeOffset is a duration used in creating the boot-time time-stamp. This duration
+        #   # is added to the current time.
+        bootTimeOffset: "-2h"
+        #   # birthdateOffset is a duration used in creating the birthdate time-stamp. This duration
+        #   # is added to the current time.
+        birthdateOffset: "-1h"
+      # - wrp:
+      #     source: "source-2"
+      #     destination: "destination-2"
+      #     metadata:
+      #       - "some-key": "some-value"
+      #       - "another key": "another value"
+      #     transactionUUID: "uuid-string"
+      #     #     # payload contains key value pairs that will be marshaled into a json and converted into a byte string
+      #   #   # bootTimeOffset is a duration used in creating the boot-time time-stamp. This duration
+      #   #   # is added to the current time.
+      #   bootTimeOffset: "-30m"
+      #   #   # birthdateOffset is a duration used in creating the birthdate time-stamp. This duration
+      #   #   # is added to the current time.
+      #   birthdateOffset: "-5m"
 
   # simulates talaria rehash
   vegetaRehash:
@@ -297,7 +334,7 @@ webhook:
   # registrationInterval provides the time to wait between each registration to
   # the webhook.  If this is set to 0, no registration is done.
   # (Optional)
-  registrationInterval: "5m"
+  registrationInterval: "1m"
 
   # timeout provides the length of time the request should wait before timing
   # out

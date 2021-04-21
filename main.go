@@ -74,26 +74,30 @@ type VegetaConfig struct {
 	SleepTime      time.Duration
 	ClientTimeout  time.Duration
 	SleepTimeAfter time.Duration
-	MessageDetails Message
+	Messages       MessageDetails
 	VegetaRehash   VegetaRehash
 }
 
 type VegetaRehash struct {
-	Routines       int
-	Frequency      int
-	Period         time.Duration
-	Connections    int
-	Duration       time.Duration
-	Sleep          time.Duration
-	MessageDetails Message
+	Routines    int
+	Frequency   int
+	Period      time.Duration
+	Connections int
+	Duration    time.Duration
+	Sleep       time.Duration
+	Messages    MessageDetails
+}
+
+type MessageDetails struct {
+	MessageContents  []Message
+	FixedCurrentTime bool
 }
 
 type Message struct {
-	Wrp              wrp.Message
-	Payload          map[string]string
-	BootTimeOffset   time.Duration
-	BirthdateOffset  time.Duration
-	FixedCurrentTime bool
+	Wrp             wrp.Message
+	Payload         map[string]string
+	BootTimeOffset  time.Duration
+	BirthdateOffset time.Duration
 }
 
 type Request struct {
@@ -180,47 +184,71 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, config Veget
 		Timeout: config.ClientTimeout,
 	}
 
-	config.MessageDetails = checkMessage(config.MessageDetails)
+	config.Messages = checkMessages(config.Messages)
 	return func(target *vegeta.Target) (err error) {
-		message := createWrp(config.MessageDetails, appStartTime, logger)
-		// encoding wrp.Message
-		var (
-			buffer  bytes.Buffer
-			encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
-		)
-
-		if err := encoder.Encode(&message); err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
+		currentTime := time.Now()
+		if config.Messages.FixedCurrentTime {
+			currentTime = appStartTime
 		}
 
-		req, err := http.NewRequest("POST", config.PostURL, &buffer)
-		if err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
-			return err
+		sendMessages(config.Messages.MessageContents, config.PostURL, currentTime, acquirer, client, logger)
 
-		}
-		req.Header.Add("Content-type", "application/msgpack")
+		return nil
+	}
+}
 
-		authValue, err := acquirer.Acquire()
-		if err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed to acquire", logging.ErrorKey(), err.Error())
-			return err
+func sendMessages(messages []Message, URL string, currentTime time.Time, acquirer acquire.Acquirer, client *http.Client, logger log.Logger) (err error) {
+	wrpMsgs := make([]wrp.Message, len(messages))
 
-		}
-
-		req.Header.Add("Authorization", authValue)
-		resp, err := client.Do(req)
-
-		if err != nil {
-			logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
-			return err
-		}
-		io.Copy(ioutil.Discard, resp.Body)
-		resp.Body.Close()
-
-		return err
+	for i, msg := range messages {
+		wrpMsgs[i] = createWrp(msg, currentTime, logger)
 	}
 
+	for _, msg := range wrpMsgs {
+		if err := sendMessage(msg, URL, acquirer, client, logger); err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func sendMessage(message wrp.Message, URL string, acquirer acquire.Acquirer, client *http.Client, logger log.Logger) (err error) {
+	// encoding wrp.Message
+	var (
+		buffer  bytes.Buffer
+		encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
+	)
+
+	if err := encoder.Encode(&message); err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to encode payload", logging.ErrorKey(), err.Error())
+	}
+
+	req, err := http.NewRequest("POST", URL, &buffer)
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to create new request", logging.ErrorKey(), err.Error())
+		return err
+
+	}
+	req.Header.Add("Content-type", "application/msgpack")
+
+	authValue, err := acquirer.Acquire()
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed to acquire", logging.ErrorKey(), err.Error())
+		return err
+
+	}
+
+	req.Header.Add("Authorization", authValue)
+	resp, err := client.Do(req)
+
+	if err != nil {
+		logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
+		return err
+	}
+	io.Copy(ioutil.Discard, resp.Body)
+	resp.Body.Close()
+
+	return err
 }
 
 func checkMessage(message Message) Message {
@@ -259,24 +287,40 @@ func checkMessage(message Message) Message {
 	return message
 }
 
-func createWrp(message Message, fixedCurrentTime time.Time, logger log.Logger) wrp.Message {
-	wrpMsg := message.Wrp
+func checkMessages(messages MessageDetails) MessageDetails {
+	msgList := messages.MessageContents
+	if len(msgList) == 0 {
+		msgList = []Message{
+			Message{},
+		}
+	}
 
-	var current time.Time
-	if message.FixedCurrentTime {
-		current = fixedCurrentTime
-	} else {
-		current = time.Now()
+	for i, msg := range msgList {
+		msgList[i] = checkMessage(msg)
+	}
+
+	messages.MessageContents = msgList
+	return messages
+}
+
+func createWrp(message Message, current time.Time, logger log.Logger) wrp.Message {
+	wrpMsg := message.Wrp
+	wrpMsg.Metadata = make(map[string]string)
+
+	for k, v := range message.Wrp.Metadata {
+		wrpMsg.Metadata[k] = v
+	}
+
+	payload := make(map[string]string)
+	for k, v := range message.Payload {
+		payload[k] = v
 	}
 
 	wrpMsg.Metadata["/boot-time"] = fmt.Sprint(current.Add(message.BootTimeOffset).Unix())
 
 	birthdate := current.Add(message.BirthdateOffset).Format(time.RFC3339Nano)
-	if message.Payload == nil {
-		message.Payload = make(map[string]string)
-	}
-	message.Payload["ts"] = birthdate
-	if j, err := json.Marshal(message.Payload); err == nil {
+	payload["ts"] = birthdate
+	if j, err := json.Marshal(payload); err == nil {
 		wrpMsg.Payload = []byte(string(j))
 	} else {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to marshal custom payload", logging.ErrorKey(), err.Error())
