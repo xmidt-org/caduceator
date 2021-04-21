@@ -26,7 +26,6 @@ FROM alpine:3.12.1
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /src/caduceator /src/caduceator.yaml /src/deploy/packaging/entrypoint.sh /go/bin/spruce /src/Dockerfile /src/NOTICE /src/LICENSE /src/CHANGELOG.md /
-COPY --from=builder /src/deploy/packaging/caduceator.yaml /tmp/caduceator.yaml
 
 RUN mkdir /etc/caduceator/ && touch /etc/caduceator/caduceator.yaml && chmod 666 /etc/caduceator/caduceator.yaml
 

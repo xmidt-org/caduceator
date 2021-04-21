@@ -297,11 +297,11 @@ webhook:
   # registrationInterval provides the time to wait between each registration to
   # the webhook.  If this is set to 0, no registration is done.
   # (Optional)
-  registrationInterval: "5m"
+  registrationInterval: "1m"
 
   # timeout provides the length of time the request should wait before timing
   # out
-  timeout: "5s"
+  timeout: "15s"
 
   # registrationURL provides the place to register the webhook.
   registrationURL: "http://caduceus:6000/hook"

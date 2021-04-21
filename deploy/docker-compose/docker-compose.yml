@@ -19,7 +19,6 @@ services:
     image: xmidt/caduceus:${CADUCEUS_VERSION}
     environment:
       - CONSUL_HOST=consul0:8500
-      - ARGUS_HOST=http://argus:6600
     ports:
       - 6000:6000
       - 6001:6001
@@ -27,8 +26,6 @@ services:
       - 6003:6003
     depends_on:
       - argus
-    volumes:
-      - ./docFiles/caduceus_spruce.yaml:/tmp/caduceus_spruce.yaml
     networks:
       - xmidt
 
@@ -49,7 +46,6 @@ services:
 
   dynamodb:
     image: amazon/dynamodb-local
-    # hostname: dynamodb
     hostname: dynamodb
     ports:
       - "8000:8000"
