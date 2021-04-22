@@ -121,7 +121,7 @@ log:
 
   # level is the logging level to use - INFO, DEBUG, WARN, ERROR
   # (Optional) defaults to ERROR
-  level: "DEBUG"
+  level: "INFO"
 
   # maxsize is the maximum file size in MB
   # (Optional) defaults to max 100MB
@@ -145,38 +145,25 @@ log:
 
 # vegeta configures how often and how long to keep attacking caduceus
 vegetaConfig:
-  # frequency is the number of events that will be sent to Caduceus' notify endpoint every period.
-  frequency: 1000
-
-  # period is how often events will be sent to Caduceus
-  # if frequency is set to 100 and period is set to 1s, then Caduceator will be sending
-  # 100 events per second to Caduceus
-  period: "5s"
-
-  # connections is the number of idle open connections per target host
+  frequency: 100
+  period: "1s"
   connections: 500
-
-  # duration is how long (in minutes) vegeta will be sending events to Caduceus
-  # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
   duration: 0
-
-  # maxRoutines is used to limit how long to send events until the number of times a cutoff is reached
-  # maxRoutines of 0 means that we will get infinite cutoffs
   maxRoutines: 0
-
-  # url to send events to
   postURL: "http://caduceus:6000/api/v3/notify"
-
-  # sleepTime is used to slow down the ingestion of events from a consumer's perspective
-  # it is the duration of time to sleep before sending a status back to Caduceus upon receiving events
-  # a longer sleepTime will result in creating a slower consumer.
   sleepTime: "5s"
-
-  # client timeout in seconds
   clientTimeout: "5s"
-
-  # destination of where to send wrpMessage
   wrpMessageDest: "event:device-status/mac:112233445566/offline"
+
+  # frequency: 1000
+  # period: "1s"
+  # connections: 500
+  # duration: 0
+  # maxRoutines: 5
+  # postURL: "http://caduceus:6000/api/v3/notify"
+  # sleepTime: "45s"
+  # clientTimeout: "5s"
+  # wrpMessageDest: "event:device-status/mac:112233445566/offline"
 
   # simulates talaria rehash
   vegetaRehash:

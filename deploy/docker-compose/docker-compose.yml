@@ -18,7 +18,8 @@ services:
   caduceus:
     image: xmidt/caduceus:${CADUCEUS_VERSION}
     environment:
-      - CONSUL_HOST=consul0:8500
+      - "ARGUS_ENDPOINT=http://argus:6600"
+      - "CONSUL_HOST=consul0:8500"
     ports:
       - 6000:6000
       - 6001:6001
