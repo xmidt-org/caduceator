@@ -65,7 +65,6 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 	}
 
 	encodedQuery := &url.URL{Path: app.queryExpression}
-
 	req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
@@ -92,11 +91,13 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 			}
 
 			var content Content
-			json.Unmarshal(contents, &content)
+			if err := json.Unmarshal(contents, &content); err != nil {
+				logging.Error(app.logger).Log(logging.MessageKey(), "unable to unmarshal prometheus query body", logging.ErrorKey(), err, "contents", string(contents))
+				return
+			}
 
 			if content.Data.ResultType == "vector" {
 				for _, results := range content.Data.Result {
-
 					// only calculating duration once queue size reaches 0
 					val, _ := strconv.Atoi(results.Value[1].(string))
 					if contains(app.webhookURLs, results.Metric.Url) && val <= 500 {

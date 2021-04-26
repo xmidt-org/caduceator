@@ -315,8 +315,8 @@ func main() {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to setup registerer", logging.ErrorKey(), err.Error())
 			os.Exit(1)
 		}
-
-		periodicRegisterer, err := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, metricsRegistry)
+		m := webhookClient.NewMeasures(metricsRegistry)
+		periodicRegisterer, err := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, m)
 
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to setup periodic registerer", logging.ErrorKey(), err.Error())
