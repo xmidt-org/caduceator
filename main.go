@@ -100,6 +100,11 @@ type Message struct {
 	BirthdateOffset time.Duration
 }
 
+type MessageWithLock struct {
+	Msg  Message
+	lock *sync.RWMutex
+}
+
 type Request struct {
 	WebhookConfig WebhookConfig
 	Events        string
@@ -184,20 +189,28 @@ func Start(id uint64, acquirer acquire.Acquirer, logger log.Logger, config Veget
 		Timeout: config.ClientTimeout,
 	}
 
-	config.Messages = checkMessages(config.Messages)
+	lockedMsgs := make([]MessageWithLock, len(config.Messages.MessageContents))
+	for i, msg := range config.Messages.MessageContents {
+		lockedMsgs[i] = MessageWithLock{
+			Msg:  msg,
+			lock: new(sync.RWMutex),
+		}
+	}
+
+	lockedMsgs = checkMessages(lockedMsgs)
 	return func(target *vegeta.Target) (err error) {
 		currentTime := time.Now()
 		if config.Messages.FixedCurrentTime {
 			currentTime = appStartTime
 		}
 
-		sendMessages(config.Messages.MessageContents, config.PostURL, currentTime, acquirer, client, logger)
+		sendMessages(lockedMsgs, config.PostURL, currentTime, acquirer, client, logger)
 
 		return nil
 	}
 }
 
-func sendMessages(messages []Message, URL string, currentTime time.Time, acquirer acquire.Acquirer, client *http.Client, logger log.Logger) (err error) {
+func sendMessages(messages []MessageWithLock, URL string, currentTime time.Time, acquirer acquire.Acquirer, client *http.Client, logger log.Logger) (err error) {
 	wrpMsgs := make([]wrp.Message, len(messages))
 
 	for i, msg := range messages {
@@ -251,8 +264,9 @@ func sendMessage(message wrp.Message, URL string, acquirer acquire.Acquirer, cli
 	return err
 }
 
-func checkMessage(message Message) Message {
-	wrpMsg := message.Wrp
+func checkMessage(msgWithLock MessageWithLock) MessageWithLock {
+	wrpMsg := msgWithLock.Msg.Wrp
+	msgWithLock.lock.Lock()
 	wrpMsg.Type = 4
 
 	if len(wrpMsg.Destination) == 0 {
@@ -283,42 +297,46 @@ func checkMessage(message Message) Message {
 		wrpMsg.Metadata["/compliance"] = "full"
 	}
 
-	message.Wrp = wrpMsg
-	return message
+	msgWithLock.Msg.Wrp = wrpMsg
+	msgWithLock.lock.Unlock()
+	return msgWithLock
 }
 
-func checkMessages(messages MessageDetails) MessageDetails {
-	msgList := messages.MessageContents
-	if len(msgList) == 0 {
-		msgList = []Message{
-			Message{},
+func checkMessages(messages []MessageWithLock) []MessageWithLock {
+	if len(messages) == 0 {
+		messages = []MessageWithLock{
+			MessageWithLock{
+				Msg:  Message{},
+				lock: new(sync.RWMutex),
+			},
 		}
 	}
 
-	for i, msg := range msgList {
-		msgList[i] = checkMessage(msg)
+	for i, msg := range messages {
+		messages[i] = checkMessage(msg)
 	}
 
-	messages.MessageContents = msgList
 	return messages
 }
 
-func createWrp(message Message, current time.Time, logger log.Logger) wrp.Message {
-	wrpMsg := message.Wrp
+func createWrp(msgWithLock MessageWithLock, current time.Time, logger log.Logger) wrp.Message {
+	wrpMsg := msgWithLock.Msg.Wrp
 	wrpMsg.Metadata = make(map[string]string)
 
-	for k, v := range message.Wrp.Metadata {
+	msgWithLock.lock.RLock()
+	for k, v := range msgWithLock.Msg.Wrp.Metadata {
 		wrpMsg.Metadata[k] = v
 	}
 
 	payload := make(map[string]string)
-	for k, v := range message.Payload {
+	for k, v := range msgWithLock.Msg.Payload {
 		payload[k] = v
 	}
+	msgWithLock.lock.RUnlock()
 
-	wrpMsg.Metadata["/boot-time"] = fmt.Sprint(current.Add(message.BootTimeOffset).Unix())
+	wrpMsg.Metadata["/boot-time"] = fmt.Sprint(current.Add(msgWithLock.Msg.BootTimeOffset).Unix())
 
-	birthdate := current.Add(message.BirthdateOffset).Format(time.RFC3339Nano)
+	birthdate := current.Add(msgWithLock.Msg.BirthdateOffset).Format(time.RFC3339Nano)
 	payload["ts"] = birthdate
 	if j, err := json.Marshal(payload); err == nil {
 		wrpMsg.Payload = []byte(string(j))
