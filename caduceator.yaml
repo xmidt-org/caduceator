@@ -158,7 +158,7 @@ vegetaConfig:
 
   # duration is how long (in minutes) vegeta will be sending events to Caduceus
   # duration of 0 means vegeta will infinitely keep on attacking caduceus until stopped
-  duration: "1m"
+  duration: 0
 
   # maxRoutines is used to limit how long to send events until the number of times a cutoff is reached
   # maxRoutines of 0 means that we will get infinite cutoffs
