@@ -22,7 +22,7 @@ services:
       - "ARGUS_ENDPOINT=http://argus:6600"
     ports:
       - 6000:6000
-      - 6001:60001
+      - 6001:6001
       - 6002:6002
       - 6003:6003
     depends_on:
@@ -38,7 +38,6 @@ services:
       - 6600:6600
       - 6601:6601
       - 6602:6602
-      - 6603:6603
     depends_on:
       - dynamodb
     volumes:
