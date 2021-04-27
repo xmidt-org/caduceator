@@ -19,6 +19,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -64,8 +65,8 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 		Timeout: app.timeoutPrometheus,
 	}
 
-	encodedQuery := &url.URL{Path: app.queryExpression}
-	req, err := http.NewRequest("GET", app.queryURL+"?query="+encodedQuery.String(), nil)
+	encodedQuery := url.QueryEscape(app.queryExpression)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s?query=%s", app.queryURL, encodedQuery), nil)
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "failed to get prometheus url", logging.ErrorKey(), err.Error())
 	}

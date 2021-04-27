@@ -370,7 +370,7 @@ func main() {
 	go vegetaStarter(metrics, config, attacker, acquirer, logger)
 
 	if config.VegetaConfig.VegetaRehash.Routines > 0 && config.VegetaConfig.VegetaRehash.Period.Nanoseconds() > 0 {
-		rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period * time.Minute)
+		rehashTicker := time.NewTicker(config.VegetaConfig.VegetaRehash.Period)
 	Loop:
 		for {
 			select {
