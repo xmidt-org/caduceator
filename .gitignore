@@ -10,6 +10,7 @@ errors.txt
 .ignore/
 coverage*
 report.json
+cpuprofile
 
 # Test binary, build with `go test -c`
 *.test
