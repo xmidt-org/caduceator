@@ -5,9 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Migrate to github actions, normalize analysis tools, Dockerfiles and Makefiles. [#23](https://github.com/xmidt-org/caduceator/pull/23)
-- Updated references to the main branch [#14](https://github.com/xmidt-org/caduceator/pull/14)
 - Updated documentation in README.md and config file
+- Updated references to the main branch [#14](https://github.com/xmidt-org/caduceator/pull/14)
+- Migrate to github actions, normalize analysis tools, Dockerfiles and Makefiles. [#23](https://github.com/xmidt-org/caduceator/pull/23)
+- Updated spec file and rpkg version macro to be able to choose when the 'v' is included in the version. [#38](https://github.com/xmidt-org/caduceator/pull/38)
 
 ## [v0.1.3]
 - bug fixes
