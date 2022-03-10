@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -55,6 +56,12 @@ import (
 
 const (
 	applicationName = "caduceator"
+)
+
+var (
+	GitCommit = "undefined"
+	Version   = "undefined"
+	BuildTime = "undefined"
 )
 
 type Config struct {
@@ -367,6 +374,28 @@ func determineTokenAcquirer(wh Webhook) (acquire.Acquirer, error) {
 	return defaultAcquirer, nil
 }
 
+func printVersion(f *pflag.FlagSet, arguments []string) (error, bool) {
+	printVer := f.BoolP("version", "v", false, "displays the version number")
+	if err := f.Parse(arguments); err != nil {
+		return err, true
+	}
+
+	if *printVer {
+		printVersionInfo(os.Stdout)
+		return nil, true
+	}
+	return nil, false
+}
+
+func printVersionInfo(writer io.Writer) {
+	fmt.Fprintf(writer, "%s:\n", applicationName)
+	fmt.Fprintf(writer, "  version: \t%s\n", Version)
+	fmt.Fprintf(writer, "  go version: \t%s\n", runtime.Version())
+	fmt.Fprintf(writer, "  built time: \t%s\n", BuildTime)
+	fmt.Fprintf(writer, "  git commit: \t%s\n", GitCommit)
+	fmt.Fprintf(writer, "  os/arch: \t%s/%s\n", runtime.GOOS, runtime.GOARCH)
+}
+
 //nolint:funlen // this will be fixed with uber fx
 func main() {
 
@@ -374,6 +403,18 @@ func main() {
 		f, v                                     = pflag.NewFlagSet(applicationName, pflag.ContinueOnError), viper.New()
 		logger, metricsRegistry, caduceator, err = server.Initialize(applicationName, os.Args, f, v, basculechecks.Metrics, basculemetrics.Metrics, webhookClient.Metrics, Metrics)
 	)
+
+	if parseErr, done := printVersion(f, os.Args); done {
+		// if we're done, we're exiting no matter what
+		if parseErr != nil {
+			friendlyError := fmt.Sprintf("failed to parse arguments. detailed error: %s", parseErr)
+			logging.Error(logger).Log(
+				logging.ErrorKey(),
+				friendlyError)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 
 	if err != nil {
 		logging.Error(logger).Log(logging.MessageKey(), "failed to initialize", logging.ErrorKey(), err.Error())
