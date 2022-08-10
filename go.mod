@@ -7,7 +7,7 @@ require (
 	github.com/c9s/goprocinfo v0.0.0-20200130063400-86ec00c33cd5 // indirect
 	github.com/dgryski/go-gk v0.0.0-20140819190930-201884a44051 // indirect
 	github.com/go-kit/kit v0.12.0
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
 	github.com/influxdata/tdigest v0.0.1 // indirect
 	github.com/justinas/alice v1.2.0
 	github.com/mailru/easyjson v0.7.0 // indirect
