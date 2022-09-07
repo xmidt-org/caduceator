@@ -20,13 +20,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/v2/logging"
 )
 
 type Content struct {
@@ -86,7 +86,7 @@ func (app *App) calculateDuration(cutoffTime time.Time) {
 		} else {
 			defer res.Body.Close()
 
-			contents, err := ioutil.ReadAll(res.Body)
+			contents, err := io.ReadAll(res.Body)
 			if err != nil {
 				logging.Error(app.logger).Log(logging.MessageKey(), "failed to read body", logging.ErrorKey(), err.Error())
 			}
