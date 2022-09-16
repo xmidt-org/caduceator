@@ -31,7 +31,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/pflag"
@@ -39,11 +39,11 @@ import (
 	vegeta "github.com/tsenart/vegeta/lib"
 	acquire "github.com/xmidt-org/bascule/acquire"
 	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
-	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
-	"github.com/xmidt-org/webpa-common/v2/concurrent"
-	"github.com/xmidt-org/webpa-common/v2/logging"
-	"github.com/xmidt-org/webpa-common/v2/server"
+	"github.com/xmidt-org/webpa-common/v2/basculechecks"  // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/basculemetrics" // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/concurrent"     // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/logging"        // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/server"         // nolint: staticcheck
 	"github.com/xmidt-org/wrp-go/v3"
 	webhook "github.com/xmidt-org/wrp-listener"
 	"github.com/xmidt-org/wrp-listener/hashTokenFactory"

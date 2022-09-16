@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/xmidt-org/webpa-common/v2/logging"
+	"github.com/xmidt-org/webpa-common/v2/logging" // nolint: staticcheck
 )
 
 type Content struct {

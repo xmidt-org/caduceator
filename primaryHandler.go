@@ -24,12 +24,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/provider"
+	"github.com/go-kit/log"
 	vegeta "github.com/tsenart/vegeta/lib"
-	"github.com/xmidt-org/webpa-common/v2/logging"
-	"github.com/xmidt-org/webpa-common/v2/xmetrics"
+	"github.com/xmidt-org/webpa-common/v2/logging"  // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/xmetrics" // nolint: staticcheck
 )
 
 type Measures struct {
