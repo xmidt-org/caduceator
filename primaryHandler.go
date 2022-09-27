@@ -18,18 +18,18 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/provider"
+	"github.com/go-kit/log"
 	vegeta "github.com/tsenart/vegeta/lib"
-	"github.com/xmidt-org/webpa-common/logging"
-	"github.com/xmidt-org/webpa-common/xmetrics"
+	"github.com/xmidt-org/webpa-common/v2/logging"  // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/xmetrics" // nolint: staticcheck
 )
 
 type Measures struct {
@@ -84,7 +84,7 @@ func (m *Measures) TrackTime(length time.Duration) {
 func (app *App) receiveEvents(writer http.ResponseWriter, req *http.Request) {
 	time.Sleep(app.sleepTime)
 
-	_, err := ioutil.ReadAll(req.Body)
+	_, err := io.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
 		logging.Error(app.logger).Log(logging.MessageKey(), "Could not read request body", logging.ErrorKey(), err.Error())

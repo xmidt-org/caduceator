@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,7 +31,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/pflag"
@@ -40,11 +39,11 @@ import (
 	vegeta "github.com/tsenart/vegeta/lib"
 	acquire "github.com/xmidt-org/bascule/acquire"
 	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/webpa-common/basculechecks"
-	"github.com/xmidt-org/webpa-common/basculemetrics"
-	"github.com/xmidt-org/webpa-common/concurrent"
-	"github.com/xmidt-org/webpa-common/logging"
-	"github.com/xmidt-org/webpa-common/server"
+	"github.com/xmidt-org/webpa-common/v2/basculechecks"  // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/basculemetrics" // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/concurrent"     // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/logging"        // nolint: staticcheck
+	"github.com/xmidt-org/webpa-common/v2/server"         // nolint: staticcheck
 	"github.com/xmidt-org/wrp-go/v3"
 	webhook "github.com/xmidt-org/wrp-listener"
 	"github.com/xmidt-org/wrp-listener/hashTokenFactory"
@@ -265,7 +264,7 @@ func sendMessage(message wrp.Message, URL string, acquirer acquire.Acquirer, cli
 		logging.Error(logger).Log(logging.MessageKey(), "failed while making HTTP request: ", logging.ErrorKey(), err.Error())
 		return err
 	}
-	io.Copy(ioutil.Discard, resp.Body)
+	io.Copy(io.Discard, resp.Body)
 	resp.Body.Close()
 
 	return err
@@ -480,7 +479,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		periodicRegisterer, err := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, metricsRegistry)
+		periodicRegisterer, err := webhookClient.NewPeriodicRegisterer(registerer, config.Webhook.RegistrationInterval, logger, webhookClient.NewMeasures(metricsRegistry))
 
 		if err != nil {
 			logging.Error(logger).Log(logging.MessageKey(), "failed to setup periodic registerer", logging.ErrorKey(), err.Error())
