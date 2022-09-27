@@ -1,7 +1,6 @@
 # Caduceator
 
 [![Build Status](https://github.com/xmidt-org/caduceator/actions/workflows/ci.yml/badge.svg)](https://github.com/xmidt-org/caduceator/actions/workflows/ci.yml)
-[![Dependency Updateer](https://github.com/xmidt-org/caduceator/actions/workflows/updater.yml/badge.svg)](https://github.com/xmidt-org/caduceator/actions/workflows/updater.yml)
 [![codecov.io](http://codecov.io/github/xmidt-org/caduceator/coverage.svg?branch=main)](http://codecov.io/github/xmidt-org/caduceator?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/xmidt-org/caduceator)](https://goreportcard.com/report/github.com/xmidt-org/caduceator)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=xmidt-org_caduceator&metric=alert_status)](https://sonarcloud.io/dashboard?id=xmidt-org_caduceator)
