@@ -12,7 +12,7 @@ require (
 	github.com/tsenart/vegeta v12.7.0+incompatible
 	github.com/xmidt-org/bascule v0.11.4
 	github.com/xmidt-org/webpa-common/v2 v2.0.7
-	github.com/xmidt-org/wrp-go/v3 v3.1.4
+	github.com/xmidt-org/wrp-go/v3 v3.1.6
 	github.com/xmidt-org/wrp-listener v0.2.6
 )
 
@@ -63,7 +63,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/streadway/quantile v0.0.0-20150917103942-b0c588724d25 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
-	github.com/ugorji/go/codec v1.2.7 // indirect
+	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xmidt-org/arrange v0.3.0 // indirect
 	github.com/xmidt-org/candlelight v0.0.13 // indirect
 	github.com/xmidt-org/chronon v0.1.1 // indirect
@@ -85,7 +85,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/dig v1.16.1 // indirect
 	go.uber.org/fx v1.19.1 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
