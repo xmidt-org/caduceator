@@ -1,3 +1,5 @@
+## SPDX-FileCopyrightText: 2020 Comcast Cable Communications Management, LLC
+## SPDX-License-Identifier: Apache-2.0
 AWS_ACCESS_KEY_ID=accessKey AWS_SECRET_ACCESS_KEY=secretKey aws dynamodb  --endpoint-url http://localhost:8000 create-table \
     --table-name gifnoc \
     --attribute-definitions \
