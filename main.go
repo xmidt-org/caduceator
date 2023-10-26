@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2020 Comcast Cable Communications Management, LLC
 // SPDX-License-Identifier: Apache-2.0
 
-
 package main
 
 import (
@@ -298,7 +297,7 @@ func checkMessage(msgWithLock MessageWithLock) MessageWithLock {
 func checkMessages(messages []MessageWithLock) []MessageWithLock {
 	if len(messages) == 0 {
 		messages = []MessageWithLock{
-			MessageWithLock{
+			{
 				Msg:  Message{},
 				lock: new(sync.RWMutex),
 			},
