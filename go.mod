@@ -12,7 +12,7 @@ require (
 	github.com/tsenart/vegeta v12.7.0+incompatible
 	github.com/xmidt-org/bascule v0.11.4
 	github.com/xmidt-org/webpa-common/v2 v2.0.7
-	github.com/xmidt-org/wrp-go/v3 v3.2.0
+	github.com/xmidt-org/wrp-go/v3 v3.2.1
 	github.com/xmidt-org/wrp-listener v0.2.6
 )
 
@@ -33,7 +33,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/goph/emperror v0.17.3-0.20190703203600-60a8d9faa17b // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
