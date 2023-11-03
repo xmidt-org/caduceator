@@ -31,7 +31,6 @@ import (
 	"github.com/xmidt-org/webpa-common/v2/logging"        // nolint: staticcheck
 	"github.com/xmidt-org/webpa-common/v2/server"         // nolint: staticcheck
 	"github.com/xmidt-org/wrp-go/v3"
-	webhook "github.com/xmidt-org/wrp-listener"
 	"github.com/xmidt-org/wrp-listener/hashTokenFactory"
 	secretGetter "github.com/xmidt-org/wrp-listener/secret"
 	"github.com/xmidt-org/wrp-listener/webhookClient"
@@ -41,6 +40,7 @@ import (
 
 const (
 	applicationName = "caduceator"
+	webhook         = "?webhook="
 )
 
 var (
@@ -441,13 +441,13 @@ func main() {
 		// set up the registerer
 		basicConfig := webhookClient.BasicConfig{
 			Timeout:         config.Webhook.Timeout,
-			RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			RegistrationURL: config.Webhook.RegistrationURL + webhook + strconv.Itoa(i),
 			Request: webhook.W{
 				Config: webhook.Config{
-					URL: config.Webhook.Request.WebhookConfig.URL + "?webhook=" + strconv.Itoa(i),
+					URL: config.Webhook.Request.WebhookConfig.URL + webhook + strconv.Itoa(i),
 				},
 				Events:     []string{config.Webhook.Request.Events},
-				FailureURL: config.Webhook.Request.WebhookConfig.FailureURL + "?webhook=" + strconv.Itoa(i),
+				FailureURL: config.Webhook.Request.WebhookConfig.FailureURL + webhook + strconv.Itoa(i),
 			},
 		}
 
