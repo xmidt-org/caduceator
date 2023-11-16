@@ -12,7 +12,7 @@ require (
 	github.com/tsenart/vegeta v12.7.0+incompatible
 	github.com/xmidt-org/bascule v0.11.4
 	github.com/xmidt-org/webpa-common/v2 v2.0.7
-	github.com/xmidt-org/wrp-go/v3 v3.2.1
+	github.com/xmidt-org/wrp-go/v3 v3.2.2
 	github.com/xmidt-org/wrp-listener v0.2.6
 )
 
