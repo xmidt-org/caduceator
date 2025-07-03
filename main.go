@@ -41,6 +41,7 @@ import (
 
 const (
 	applicationName = "caduceator"
+	whparam         = "?webhook="
 )
 
 var (
@@ -441,13 +442,13 @@ func main() {
 		// set up the registerer
 		basicConfig := webhookClient.BasicConfig{
 			Timeout:         config.Webhook.Timeout,
-			RegistrationURL: config.Webhook.RegistrationURL + "?webhook=" + strconv.Itoa(i),
+			RegistrationURL: config.Webhook.RegistrationURL + whparam + strconv.Itoa(i),
 			Request: webhook.W{
 				Config: webhook.Config{
-					URL: config.Webhook.Request.WebhookConfig.URL + "?webhook=" + strconv.Itoa(i),
+					URL: config.Webhook.Request.WebhookConfig.URL + whparam + strconv.Itoa(i),
 				},
 				Events:     []string{config.Webhook.Request.Events},
-				FailureURL: config.Webhook.Request.WebhookConfig.FailureURL + "?webhook=" + strconv.Itoa(i),
+				FailureURL: config.Webhook.Request.WebhookConfig.FailureURL + whparam + strconv.Itoa(i),
 			},
 		}
 
